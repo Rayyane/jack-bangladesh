@@ -1,186 +1,88 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import NavDropdownItem from './NavDropdownItem.vue';
 
-type MegaMenuGroup = {
-    title: string;
-    links: string[];
-};
-
-type NavItem = {
-    label: string;
-    groups: MegaMenuGroup[];
-};
-
-const openMenu = ref<string | null>(null);
-
-const navItems: NavItem[] = [
-    {
-        label: 'Lockstitch',
-        groups: [
-            {
-                title: 'Basic',
-                links: ['Jack F6', 'Jack F7', 'Jack F8']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-            {
-                title: 'Thread Trimmer',
-                links: ['Jack A2C', 'Jack A3C', 'Jack A4B', 'Jack A2F']
-            },
-        ],
-    },
-    {
-        label: 'Overlock',
-        groups: [
-            {
-                title: 'Featured',
-                links: ['Consulting', 'Planning', 'Support']
-            },
-            {
-                title: 'Specialties',
-                links: ['Custom Orders', 'Corporate', 'Events'],
-            },
-            {
-                title: 'Resources',
-                links: ['Guides', 'FAQ', 'Downloads']
-            },
-        ],
-    },
-    {
-        label: 'Products',
-        groups: [
-            {
-                title: 'Collections',
-                links: ['New Arrivals', 'Best Sellers', 'Seasonal'],
-            },
-            {
-                title: 'Categories',
-                links: ['Essentials', 'Premium', 'Gift Sets'],
-            },
-        ],
-    },
-    {
-        label: 'Gallery',
-        groups: [
-            {
-                title: 'Explore',
-                links: ['Projects', 'Inspiration', 'Customer Stories'],
-            },
-            {
-                title: 'Media',
-                links: ['Photos', 'Videos', 'Press']
-            },
-        ],
-    },
-    {
-        label: 'Blog',
-        groups: [
-            {
-                title: 'Topics',
-                links: ['News', 'Tips', 'Behind the Scenes']
-            },
-            {
-                title: 'Archives',
-                links: ['Latest Posts', 'Popular Reads', 'Announcements'],
-            },
-        ],
-    },
-    {
-        label: 'Contact',
-        groups: [
-            {
-                title: 'Connect',
-                links: ['Request Info', 'Book a Call', 'Directions'],
-            },
-            {
-                title: 'Support',
-                links: ['Help Center', 'Customer Care', 'Feedback'],
-            },
-        ],
-    },
+// Mocking an infinite recursive structure using placeholder data
+const mockNavCategories = [
+  {
+    id: 1,
+    name: 'Electronics',
+    children: [
+      {
+        id: 11,
+        name: 'Computers & Laptops',
+        children: [
+          { id: 111, name: 'MacBook Pro M4 Pro', isProduct: true },
+          { id: 112, name: 'HP Pavilion Ultra', isProduct: true },
+          { id: 113, name: 'Asus ROG Strix', isProduct: true },
+        ]
+      },
+      {
+        id: 12,
+        name: 'Smartphones',
+        children: [
+          { id: 121, name: 'iPhone 17 Pro Max', isProduct: true },
+          { id: 122, name: 'Google Pixel 10', isProduct: true }
+        ]
+      },
+      { id: 13, name: 'Audio Devices', children: [] } // Will show products directly if mock added
+    ],
+    products: [
+        { id: 99, name: 'Ecotank Printer', isProduct: true }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Apparel & Fashion',
+    children: [
+      { id: 21, name: 'Premium Leather Boots', isProduct: true },
+      { id: 22, name: 'Minimalist Windbreaker', isProduct: true },
+    ]
+  },
+  {
+    id: 3,
+    name: 'Home & Living',
+    children: [] // Simple link with no nested layers
+  }
 ];
-
-const toggleMenu = (label: string) => {
-    openMenu.value = openMenu.value === label ? null : label;
-};
 </script>
 
 <template>
-    <header class="sticky top-0 z-50 w-full border-b border-border bg-background">
-        <!-- <div class="border-b border-border bg-primary text-primary-foreground">
-            <div
-                class="mx-auto flex min-h-8 max-w-7xl items-center justify-between gap-4 px-4 text-xs font-medium sm:px-6 lg:px-8">
-                <a class="truncate hover:underline" href="mailto:hello@example.com">
-                    hello@example.com
-                </a>
-                <a class="shrink-0 hover:underline" href="tel:+15550123456">
-                    +1 (555) 012-3456
-                </a>
-            </div>
-        </div> -->
+  <nav class="relative bg-background border-b border-border z-50" aria-label="Main navigation">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <ul class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 py-3">
+        
+        <li 
+          v-for="category in mockNavCategories" 
+          :key="category.id" 
+          class="relative group py-2 px-3"
+        >
+          <button class="relative text-foreground hover:text-jack-blue font-medium flex items-center gap-1.5 cursor-pointer pb-1 transition-colors duration-200">
+            {{ category.name }}
+            
+            <svg 
+              v-if="category.children && category.children.length > 0"
+              class="w-3 h-3 transition-transform duration-300 transform group-hover:rotate-180 text-muted-foreground group-hover:text-jack-blue" 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
 
-        <div class="border-b border-border bg-jack-blue">
-            <div class="mx-auto flex min-h-12 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                <a href="/" aria-label="Jack home">
-                    <img class="h-10 w-auto object-contain" src="/jacklogo.png" alt="Jack logo" />
-                </a>
-                <input type="search"
-                    class="block w-1/3 p-3 my-2 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder="Search Products" required />
-            </div>
-        </div>
+            <span class="absolute bottom-0 left-0 w-0 h-[2px] bg-jack-blue transition-all duration-300 ease-out group-hover:w-full"></span>
+          </button>
 
-        <nav class="relative bg-background" aria-label="Main navigation">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <ul class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 py-3">
-                    <li v-for="item in navItems" :key="item.label">
-                        <button
-                            class="inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-semibold tracking-normal text-foreground uppercase transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            type="button" :aria-expanded="openMenu === item.label"
-                            :aria-controls="`mega-menu-${item.label}`" @click="toggleMenu(item.label)">
-                            {{ item.label }}
-                        </button>
-                    </li>
-                </ul>
-            </div>
+          <div 
+            v-if="category.children && category.children.length > 0"
+            class="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-56 bg-card border border-border rounded-md shadow-xl py-2 mt-1 animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            <NavDropdownItem 
+              v-for="child in category.children" 
+              :key="child.id" 
+              :item="child" 
+            />
+          </div>
+        </li>
 
-            <div v-for="item in navItems" v-show="openMenu === item.label" :id="`mega-menu-${item.label}`"
-                :key="`${item.label}-menu`"
-                class="absolute top-full right-0 left-0 border-y border-border bg-popover shadow-lg">
-                <div class="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-3 lg:px-8">
-                    <section v-for="group in item.groups" :key="group.title">
-                        <h3 class="text-sm font-semibold tracking-normal text-muted-foreground uppercase">
-                            {{ group.title }}
-                        </h3>
-                        <ul class="mt-3 space-y-2">
-                            <li v-for="link in group.links" :key="link">
-                                <a class="block rounded-md px-2 py-1.5 text-sm text-popover-foreground transition hover:bg-accent"
-                                    href="#">
-                                    {{ link }}
-                                </a>
-                            </li>
-                        </ul>
-                    </section>
-                </div>
-            </div>
-        </nav>
-    </header>
+      </ul>
+    </div>
+  </nav>
 </template>

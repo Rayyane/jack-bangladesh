@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..0,900;1,100..0,900&display=swap');
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
@@ -9,9 +10,11 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Google Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    --font-roboto: 'Roboto', sans-serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -85,7 +88,7 @@
     body,
     html {
         --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Google Sans', ui-sans-serif, system-ui, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
     }
@@ -171,6 +174,6 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground font-sans;
     }
 }
