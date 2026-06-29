@@ -26,7 +26,7 @@
           <span class="inline-block bg-jack-blue font-roboto text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded mb-3 self-start">
             New Arrival
           </span>
-          <h2 class="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2 max-w-xl">
+          <h2 class="text-2xl sm:text-4xl font-extrabold mb-2 max-w-xl">
             Next-Gen Smart Automation Systems
           </h2>
           <p class="text-sm sm:text-base text-white/80 max-w-md mb-6">
