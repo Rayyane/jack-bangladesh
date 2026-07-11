@@ -6,7 +6,13 @@ const categories = [
   { id: 3, name: 'Heavy Duty' },
   { id: 4, name: 'Automatic Templates' },
   { id: 5, name: 'Genuine Motors' },
-  { id: 6, name: 'Spare Parts & Tools' }
+  { id: 6, name: 'Spare Parts & Tools' },
+  { id: 7, name: 'Ironing' },
+  { id: 8, name: 'Automatic' },
+  { id: 9, name: 'Motors' },
+  { id: 10, name: 'Zig Zag' },
+  { id: 11, name: 'Post Bed' },
+  { id: 12, name: 'Interlock Series' },
 ];
 </script>
 
@@ -22,7 +28,7 @@ const categories = [
       </p>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-16">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-16 justify-center">
       
       <div 
         v-for="category in categories" 
