@@ -17,6 +17,10 @@ createInertiaApp({
                 return null;
             case name === 'ProductDetailView':
                 return null;
+            case name === 'AboutUs':
+                return null;
+            case name === 'Contact':
+                return null;
             case name === 'Welcome':
                 return null;
             case name.startsWith('auth/'):

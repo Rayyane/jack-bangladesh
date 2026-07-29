@@ -14,12 +14,12 @@
       <div class="md:col-span-2 relative group overflow-hidden rounded-xl border border-border bg-card shadow-md h-[400px] md:h-[550px]">
         <!-- Background Image -->
         <img 
-          src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80" 
+          src="/hero-1.png" 
           alt="Main Promo Poster" 
           class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <!-- Dark Overlay Gradient -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
         
         <!-- Content Area -->
         <div class="absolute inset-0 p-6 sm:p-10 flex flex-col justify-end text-white">
@@ -49,11 +49,11 @@
         <!-- Top Poster -->
         <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[190px] md:min-h-0">
           <img 
-            src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80" 
+            src="/hero-2.png" 
             alt="Top Mini Promo" 
             class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
           
           <div class="absolute inset-0 p-6 flex flex-col justify-end text-white">
             <h3 class="text-lg font-bold mb-1">Heavy Duty Series</h3>
@@ -69,11 +69,11 @@
         <!-- Bottom Poster -->
         <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[190px] md:min-h-0">
           <img 
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" 
+            src="hero-3.png" 
             alt="Bottom Mini Promo" 
             class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
           
           <div class="absolute inset-0 p-6 flex flex-col justify-end text-white">
             <span class="text-orange-400 text-xs font-bold uppercase tracking-wider mb-1 block">Up to 30% Off</span>

@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'Home')->name('home');
 Route::inertia('/categories', 'CategoryView')->name('CategoryView');
 Route::inertia('/product-view', 'ProductDetailView')->name('ProductDetailView');
+Route::inertia('/about-us', 'AboutUs')->name('AboutUsView');
+Route::inertia('/contact-us', 'Contact')->name('ContactView');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');

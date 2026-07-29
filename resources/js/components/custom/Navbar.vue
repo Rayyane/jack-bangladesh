@@ -154,7 +154,7 @@ const mockNavCategories = [
               </svg>
             </button>
 
-            <a href="#" class="block">
+            <a href="/" class="block">
               <img src="/jacklogo.png" alt="Jack Logo" class="h-9 w-auto object-contain brightness-0 invert" />
             </a>
           </div>
@@ -193,7 +193,7 @@ const mockNavCategories = [
               
             </button>
 
-            <a href="#"
+            <a href="/about-us"
               class="hidden md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
               <!-- <svg class="w-4 h-4 text-orange-300 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd"
@@ -204,7 +204,7 @@ const mockNavCategories = [
               <span class="hidden sm:inline">About Us</span>
             </a>
 
-            <a href="#"
+            <a href="/contact-us"
               class="hidden md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
               <!-- <svg class="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
