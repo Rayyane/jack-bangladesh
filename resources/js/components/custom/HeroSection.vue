@@ -47,7 +47,7 @@
       <div class="md:col-span-1 flex flex-col gap-4 lg:gap-6 justify-between h-auto">
         
         <!-- Top Poster -->
-        <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[190px] md:min-h-0">
+        <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[300px] md:min-h-[190px]">
           <img 
             src="/hero-2.png" 
             alt="Top Mini Promo" 
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Bottom Poster -->
-        <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[190px] md:min-h-0">
+        <div class="relative group flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-md min-h-[300px] md:min-h-[190px]">
           <img 
             src="hero-3.png" 
             alt="Bottom Mini Promo" 

@@ -194,7 +194,7 @@ const mockNavCategories = [
             </button>
 
             <a href="/about-us"
-              class="hidden md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
+              class="md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
               <!-- <svg class="w-4 h-4 text-orange-300 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd"
                   d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1014 0c0-1.307-.349-2.518-1-3.523a11.398 11.398 0 00-3.35-3.882zm-3.86 10.13a.75.75 0 001.05-.143 2.5 2.5 0 014.076.544.75.75 0 001.332-.691 4 4 0 00-6.53-1.096.75.75 0 00.073 1.385z"
@@ -205,13 +205,13 @@ const mockNavCategories = [
             </a>
 
             <a href="/contact-us"
-              class="hidden md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
+              class="md:flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors duration-150">
               <!-- <svg class="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
               </svg> -->
               <MessageSquareText class="size-4"/>
-              <span>Contact Us</span>
+              <span class="hidden sm:inline">Contact Us</span>
             </a>
 
             <a href="#"
@@ -305,12 +305,12 @@ const mockNavCategories = [
           class="border-b border-border/50 last:border-0 py-1">
 
           <div class="flex items-center justify-between py-2 text-foreground font-medium">
-            <a href="#" class="hover:text-jack-blue text-sm">{{ category.name }}</a>
+            <a href="#" class="hover:text-jack-blue text-md">{{ category.name }}</a>
           </div>
 
           <div v-if="category.children && category.children.length > 0" class="pl-4 pb-2 space-y-1.5">
             <div v-for="child in category.children" :key="'mob-child-' + child.id" class="text-xs">
-              <span class="text-muted-foreground/70 font-semibold uppercase tracking-wider block text-[10px] mt-1">{{
+              <span class="text-muted-foreground/70 font-semibold uppercase tracking-wider block text-[13px] mt-1">{{
                 child.name }}</span>
 
               <div v-if="child.children && child.children.length > 0"
