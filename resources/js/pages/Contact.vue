@@ -129,7 +129,7 @@ const handleSubmit = () => {
           <div class="bg-card border border-border rounded-xl p-2 shadow-sm overflow-hidden h-[380px] lg:h-[420px] relative">
             <iframe 
               class="w-full h-full rounded-lg border-0"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3651.902442430132!2d90.39108!3d23.7508!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjPCsDQ1JzAyLjkiTiA5MMKwMjMnMjcuOSJF!5e0!3m2!1sen!2sbd!4v1700000000000!5m2!1sen!2sbd" 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d58409.86977763151!2d90.2816104888916!3d23.796654142306412!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755c100578b8da5%3A0x1c3853ded9a64299!2sJack%20Bangladesh%20Ltd%20(Corporate%20Office)!5e0!3m2!1sen!2sbd!4v1785300492341!5m2!1sen!2sbd" 
               allowfullscreen 
               loading="lazy" 
               referrerpolicy="no-referrer-when-downgrade"

@@ -9,6 +9,7 @@ const product = {
   name: 'Jack E4S',
   tagline: 'Smart Overlock Industrial System',
   subText: 'Advanced high-speed overlock machine integrated with a physical L/M/H (Light / Medium / Heavy) material selector switch, designed to instantly adapt torque and feeding characteristics across variable fabric weight profiles.',
+  price: '৳ 90,000'
 };
 
 // Deep dive alternating feature sections
@@ -60,6 +61,10 @@ const dynamicFeatures = [
 
           <p class="text-sm text-muted-foreground leading-relaxed font-sans">
             {{ product.subText }}
+          </p>
+
+          <p class="text-md leading-relaxed font-sans">
+            {{ product.price }}
           </p>
 
           <!-- Core Call To Action Panel -->

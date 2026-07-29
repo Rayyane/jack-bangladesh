@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { dashboard, login, register } from '@/routes';
 import NavDropdownItem from './NavDropdownItem.vue';
-import { Search, X, MessageSquareText, LogIn, MapPinHouse } from '@lucide/vue';
+import { Search, X, MessageSquareText, LogIn, MapPinHouse, ChevronDown, ChevronRight } from '@lucide/vue';
 
 const isMobileSearchOpen = ref(false);
 const isMobileMenuOpen = ref(false); // Mobile menu visibility toggle
@@ -273,11 +273,16 @@ const mockNavCategories = [
               class="relative text-foreground hover:text-jack-blue font-medium flex items-center gap-1.5 cursor-pointer pb-1 transition-colors duration-200">
               {{ category.name }}
 
-              <svg v-if="category.children && category.children.length > 0"
+              <!-- <svg v-if="category.children && category.children.length > 0"
                 class="w-3 h-3 transition-transform duration-300 transform group-hover:rotate-180 text-muted-foreground group-hover:text-jack-blue"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              </svg> -->
+
+              <ChevronDown  
+                v-if="category.children && category.children.length > 0" 
+                class="size-4 transition-transform duration-300 transform group-hover:rotate-180 text-muted-foreground group-hover:text-jack-blue"
+              />
 
               <span
                 class="absolute bottom-0 left-0 w-0 h-[2px] bg-jack-blue transition-all duration-300 ease-out group-hover:w-full"></span>

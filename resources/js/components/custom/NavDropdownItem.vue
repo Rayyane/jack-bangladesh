@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ChevronRight } from '@lucide/vue';
+
 defineOptions({
   name: 'NavDropdownItem'
 });
@@ -29,13 +31,18 @@ defineProps<{
     <button class="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-jack-blue cursor-pointer transition-colors duration-150">
       {{ item.name }}
       
-      <svg 
+      <!-- <svg 
         v-if="item.children && item.children.length > 0"
         class="w-3 h-3 text-muted-foreground group-hover/sub:text-jack-blue transition-transform duration-300 transform group-hover/sub:rotate-90" 
         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
       >
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      </svg> -->
+
+      <ChevronRight 
+        v-if="item.children && item.children.length > 0"
+        class="size-4 text-muted-foreground group-hover/sub:text-jack-blue transition-transform duration-300 transform group-hover/sub:rotate-90"
+      />
     </button>
 
     <div 
