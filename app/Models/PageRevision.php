@@ -23,7 +23,6 @@ class PageRevision extends Model
     protected function casts() {
         return [
             'content' => 'array',
-            'show_in_nav' => 'boolean',
             'publish_at' => 'datetime',
             'published_at' => 'datetime'
         ];
@@ -33,10 +32,10 @@ class PageRevision extends Model
     // Use these throughout the app instead of raw strings to avoid typos.
     // -------------------------------------------------------------------------
  
-    const STATUS_DRAFT          = 'draft';
+    const STATUS_DRAFT = 'draft';
     const STATUS_PENDING_REVIEW = 'pending_review';
-    const STATUS_APPROVED       = 'approved';
-    const STATUS_PUBLISHED      = 'published';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_PUBLISHED = 'published';
  
     // -------------------------------------------------------------------------
     // Relationships

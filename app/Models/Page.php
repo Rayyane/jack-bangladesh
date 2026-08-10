@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['slug', 'template_key', 'published_revision_id'])]
@@ -16,7 +19,8 @@ class Page extends Model
     * This is the full history — draft, pending, approved, published, all of it.
     */
 
-    public function revisions() {
+    public function revisions(): HasMany
+    {
         return $this->hasMany(PageRevision::class)->latest();
     }
 
@@ -30,7 +34,8 @@ class Page extends Model
      * page_revisions — that's what makes it a belongsTo.
      */
 
-    public function publishedRevision() {
+    public function publishedRevision(): BelongsTo
+    {
         return $this->belongsTo(PageRevision::class, 'published_revision_id');
     }
 
@@ -39,9 +44,9 @@ class Page extends Model
      * Returns null if no draft exists (e.g. published content with no active edit).
      */
 
-    public function latestDraft()
+    public function latestDraft(): ?PageRevision
     {
-        return $this->revisions()->where('status', 'draft')->limit(1);
+        return $this->revisions()->where('status', 'draft')->first();
     }
 
     /**
@@ -67,14 +72,17 @@ class Page extends Model
      */
     public function publish(PageRevision $revision): void
     {
-        $revision->update([
-            'status'       => 'published',
-            'published_at' => now(),
-        ]);
+        if ($revision->page_id === $this->id ) {
+            $revision->update([
+                'status' => 'published',
+                'published_at' => now(),
+            ]);
  
-        $this->update([
-            'published_revision_id' => $revision->id,
-        ]);
+            $this->update([
+                'published_revision_id' => $revision->id,
+            ]);
+        }
+        
     }
  
     /**

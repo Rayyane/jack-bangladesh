@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Product;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\LogOptions;
@@ -41,12 +44,13 @@ class Category extends Model
     /**
      * The parent category (null for root-level categories).
      */
-    public function parent()
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    public function children() {
+    public function children(): HasMany
+    {
         return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order');
     }
 
@@ -59,7 +63,8 @@ class Category extends Model
         return $this->children()->with('recursiveChildren');
     }
 
-    public function products() {
+    public function products(): HasMany
+    {
         return $this->hasMany(Product::class);
     }
 
@@ -77,7 +82,7 @@ class Category extends Model
             ->get();
     }
 
-    public function descendants(): \Illuminate\Database\Eloquent\Builder
+    public function descendants(): Builder
     {
         // Direct children store the parent ID as the full path.
         // Deeper descendants store the ancestor chain starting with this ID.
@@ -149,11 +154,11 @@ class Category extends Model
         return static::toTreeArray($roots);
     }
 
-    protected static function toTreeArray(\Illuminate\Database\Eloquent\Collection $categories): array
+    protected static function toTreeArray(Collection $categories): array
     {
         return $categories->map(fn (Category $cat) => [
             'id'       => $cat->id,
-            'name'     => $cat->name,
+            'name'     => $cat->name, 
             'slug'     => $cat->slug,
             'children' => static::toTreeArray($cat->recursiveChildren),
         ])->all();

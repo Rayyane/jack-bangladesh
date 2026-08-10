@@ -45,7 +45,7 @@ class SlugHistory extends Model
      * Usage:
      *   SlugHistory::record($product, 'new-product-slug');
      */
-    public static function record(Model $model, string $newSlug): static
+    public static function record(Model $model, string $newSlug)
     {
         // Retire the previously current slug (if any).
         static::where('sluggable_type', $model->getMorphClass())
@@ -75,7 +75,7 @@ class SlugHistory extends Model
      *       return redirect($currentSlug, 301);
      *   }
      */
-    public static function resolve(string $slug): ?static
+    public static function resolve(string $slug)
     {
         return static::where('slug', $slug)->first();
     }
@@ -87,7 +87,7 @@ class SlugHistory extends Model
      * Usage:
      *   $currentSlug = SlugHistory::currentSlugFor($product);
      */
-    public static function currentSlugFor(Model $model): ?string
+    public static function currentSlugFor(Model $model)
     {
         return static::where('sluggable_type', $model->getMorphClass())
             ->where('sluggable_id', $model->getKey())

@@ -40,14 +40,17 @@ class Product extends Model
      *   DB::transaction(fn () => $product->publish($revision));
      */
     public function publish(ProductRevision $revision) {
-        $revision->update([
-            'status'       => ProductRevision::STATUS_PUBLISHED,
-            'published_at' => now(),
-        ]);
+        if ($revision->product_id === $this->id) {
+            $revision->update([
+                'status'       => ProductRevision::STATUS_PUBLISHED,
+                'published_at' => now(),
+            ]);
  
-        $this->update([
-            'published_revision_id' => $revision->id,
-        ]);
+            $this->update([
+                'published_revision_id' => $revision->id,
+            ]);
+        }
+        
     }
 
     public function isPublished() {
