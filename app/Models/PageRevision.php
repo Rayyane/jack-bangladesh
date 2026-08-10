@@ -23,7 +23,8 @@ class PageRevision extends Model
     protected function casts() {
         return [
             'content' => 'array',
-            'show_in_nav' => 'publish_at',
+            'show_in_nav' => 'boolean',
+            'publish_at' => 'datetime',
             'published_at' => 'datetime'
         ];
     }
