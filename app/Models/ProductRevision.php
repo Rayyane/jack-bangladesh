@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
@@ -16,15 +18,16 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'submitted_by',
     'approved_by',
     'publish_at',
-    'published_at'
+    'published_at',
 ])]
 
 class ProductRevision extends Model
 {
-    protected function casts() {
+    protected function casts(): array
+    {
         return [
             'publish_at' => 'datetime',
-            'published_at' => 'datetime'
+            'published_at' => 'datetime',
         ];
     }
 
@@ -32,40 +35,48 @@ class ProductRevision extends Model
     // Workflow status constants
     // Use these throughout the app instead of raw strings to avoid typos.
     // -------------------------------------------------------------------------
- 
-    const STATUS_DRAFT          = 'draft';
+
+    const STATUS_DRAFT = 'draft';
+
     const STATUS_PENDING_REVIEW = 'pending_review';
-    const STATUS_APPROVED       = 'approved';
-    const STATUS_PUBLISHED      = 'published';
+
+    const STATUS_APPROVED = 'approved';
+
+    const STATUS_PUBLISHED = 'published';
 
     // -------------------------------------------------------------------------
     // Relationships
     // -------------------------------------------------------------------------
- 
-    public function product() {
+
+    public function product(): BelongsTo
+    {
         return $this->belongsTo(Product::class);
     }
 
-    public function submittedBy() {
+    public function submittedBy(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'submitted_by');
     }
 
-    public function approvedBy() {
+    public function approvedBy(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function sections() {
+    public function sections(): HasMany
+    {
         return $this->hasMany(ProductSection::class)->orderBy('sort_order');
     }
 
-    public function media() {
+    public function media(): MorphMany
+    {
         return $this->morphMany(Media::class, 'mediable')->orderBy('sort_order');
     }
 
     /**
      * Product gallery images — shown in the photo carousel on the product page.
      */
-    public function gallery(): MorphMany
+    public function gallery()
     {
         return $this->media()->where('collection', 'gallery');
     }
@@ -76,7 +87,7 @@ class ProductRevision extends Model
      *
      * Usage: $revision->specifications()->first()
      */
-    public function specifications(): MorphMany
+    public function specifications()
     {
         return $this->media()->where('collection', 'specifications');
     }
@@ -84,29 +95,29 @@ class ProductRevision extends Model
     // -------------------------------------------------------------------------
     // Workflow helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Submit for editorial review.
      */
     public function submitForReview(User $submitter): void
     {
         $this->update([
-            'status'       => self::STATUS_PENDING_REVIEW,
+            'status' => self::STATUS_PENDING_REVIEW,
             'submitted_by' => $submitter->id,
         ]);
     }
- 
+
     /**
      * Approve this revision (a publisher can then publish it).
      */
     public function approve(User $approver): void
     {
         $this->update([
-            'status'      => self::STATUS_APPROVED,
+            'status' => self::STATUS_APPROVED,
             'approved_by' => $approver->id,
         ]);
     }
- 
+
     /**
      * Reject back to draft (reviewer requests changes).
      */
@@ -114,7 +125,7 @@ class ProductRevision extends Model
     {
         $this->update(['status' => self::STATUS_DRAFT]);
     }
- 
+
     /**
      * Whether this revision is the currently live one on its product.
      */
@@ -122,28 +133,35 @@ class ProductRevision extends Model
     {
         return $this->product->published_revision_id === $this->id;
     }
- 
+
     // -------------------------------------------------------------------------
     // Scopes
     // -------------------------------------------------------------------------
- 
+
     public function scopeDraft($query)
     {
         return $query->where('status', self::STATUS_DRAFT);
     }
- 
+
     public function scopePendingReview($query)
     {
         return $query->where('status', self::STATUS_PENDING_REVIEW);
     }
- 
+
     public function scopeApproved($query)
     {
         return $query->where('status', self::STATUS_APPROVED);
     }
- 
+
     public function scopePublished($query)
     {
         return $query->where('status', self::STATUS_PUBLISHED);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(static function (ProductRevision $revision): void {
+            $revision->media()->eachById(static fn (Media $media): bool => $media->delete());
+        });
     }
 }

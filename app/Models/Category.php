@@ -10,186 +10,199 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[Fillable(['parent_id', 'name', 'slug', 'materialized_path', 'sort_order', 'show_in_nav'])]
-
+#[Fillable(['parent_id', 'name', 'slug', 'sort_order', 'show_in_nav'])]
 class Category extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use LogsActivity, SoftDeletes;
 
-    protected function casts() {
+    public const CACHE_KEY = 'categories.tree';
+
+    public const CACHE_TTL = 86_400;
+
+    protected function casts(): array
+    {
         return [
             'sort_order' => 'integer',
-            'show_in_nav' => 'boolean'
+            'show_in_nav' => 'boolean',
         ];
     }
-
-    // -------------------------------------------------------------------------
-    // Activity log (spatie/laravel-activitylog)
-    // Logs create, update, delete events with before/after diffs automatically.
-    // Accessible via: $category->activities
-    // -------------------------------------------------------------------------
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logOnly(['parent_id', 'name', 'slug', 'sort_order', 'show_in_nav'])
-            ->logOnlyDirty()        // only log fields that actually changed
-            ->dontSubmitEmptyLogs() // skip logging if nothing changed
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->useLogName('category');
     }
 
-    /**
-     * The parent category (null for root-level categories).
-     */
+    /** @return BelongsTo<Category, $this> */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Category::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /** @return HasMany<Category, $this> */
     public function children(): HasMany
     {
-        return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order');
+        return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order');
     }
 
-    /**
-     * Recursively eager-loadable children for building the full nested tree.
-     * Usage: Category::with('recursiveChildren')->whereNull('parent_id')->get()
-     */
-    public function recursiveChildren()
+    /** @return HasMany<Category, $this> */
+    public function recursiveChildren(): HasMany
     {
         return $this->children()->with('recursiveChildren');
     }
 
+    /** @return HasMany<Product, $this> */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
     }
 
-    public function getAncestorsAttribute()
+    /** @return Collection<int, Category> */
+    public function getAncestorsAttribute(): Collection
     {
-        if (empty($this->materialized_path)) {
-            return collect();
+        $ids = array_values(array_filter(
+            explode('/', (string) $this->materialized_path),
+            static fn (string $id): bool => ctype_digit($id),
+        ));
+
+        if ($ids === []) {
+            return new Collection;
         }
- 
-        $ids = explode('/', $this->materialized_path);
- 
-        // Preserve the root → parent ordering from the path.
-        return static::whereIn('id', $ids)
-            ->orderByRaw('FIELD(id, ' . implode(',', $ids) . ')')
-            ->get();
+
+        $ancestors = static::query()->whereKey($ids)->get()->keyBy('id');
+
+        return (new Collection($ids))
+            ->map(static fn (string $id): ?Category => $ancestors->get((int) $id))
+            ->filter()
+            ->values();
     }
 
+    /** @return Builder<Category> */
     public function descendants(): Builder
     {
-        // Direct children store the parent ID as the full path.
-        // Deeper descendants store the ancestor chain starting with this ID.
-        return static::where('materialized_path', (string) $this->id)
-            ->orWhere('materialized_path', 'like', $this->id . '/%');
+        return static::query()->where(function (Builder $query): void {
+            $query->where('materialized_path', (string) $this->id)
+                ->orWhere('materialized_path', 'like', $this->id.'/%');
+        });
     }
 
     public function rebuildPath(): void
     {
-        if (is_null($this->parent_id)) {
+        if ($this->parent_id === null) {
             $this->materialized_path = null;
-        } else {
-            $parent = static::find($this->parent_id);
- 
-            $this->materialized_path = $parent->materialized_path
-                ? $parent->materialized_path . '/' . $parent->id
-                : (string) $parent->id;
+
+            return;
         }
+
+        $parent = static::query()->find($this->parent_id);
+
+        if ($parent === null) {
+            throw ValidationException::withMessages([
+                'parent_id' => 'The selected parent category does not exist or has been deleted.',
+            ]);
+        }
+
+        $this->materialized_path = $parent->materialized_path
+            ? $parent->materialized_path.'/'.$parent->id
+            : (string) $parent->id;
     }
 
     public function rebuildDescendantPaths(): void
     {
-        foreach ($this->children as $child) {
+        $this->children()->eachById(function (Category $child): void {
             $child->rebuildPath();
-            $child->saveQuietly(); // saveQuietly skips model events to avoid loops
+            $child->saveQuietly();
             $child->rebuildDescendantPaths();
-        }
+        });
     }
 
-    // -------------------------------------------------------------------------
-    // Megamenu tree cache
-    // Stored as a nested array rather than models to keep serialization simple.
-    // The full tree is cached once and invalidated on any category change.
-    // -------------------------------------------------------------------------
- 
-    const CACHE_KEY = 'categories.tree';
-    const CACHE_TTL = 60 * 60 * 24; // 24 hours — invalidated on change anyway
- 
-    /**                                                                                                                ?                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-     * Returns the full category tree as a nested array, from cache.
-     * Shape: [['id', 'name', 'slug', 'children' => [...]], ...]
-     *
-     * Usage in controllers/Inertia shared data:
-     *   $menu = Category::getTree();
-     */
-    public static function getTree(): array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+    /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
+    public static function getTree(): array
     {
-        return Cache::remember(static::CACHE_KEY, static::CACHE_TTL, function () {
-            return static::buildTree();
-        });
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, static fn (): array => self::buildTree());
     }
 
     public static function clearTreeCache(): void
     {
-        Cache::forget(static::CACHE_KEY);
+        Cache::forget(self::CACHE_KEY);
     }
 
-    /**
-     * Builds the full nested tree array from the database.
-     * Loads all categories in two queries (one for roots, recursive eager load).
-     */
+    /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
     protected static function buildTree(): array
     {
-        $roots = static::with('recursiveChildren')
-            ->whereNull('parent_id')
-            ->orderBy('sort_order')
-            ->get();
- 
-        return static::toTreeArray($roots);
+        return self::toTreeArray(
+            static::query()->with('recursiveChildren')->whereNull('parent_id')->orderBy('sort_order')->get(),
+        );
     }
 
+    /** @param Collection<int, Category> $categories
+     *  @return array<int, array{id: int, name: string, slug: string, children: array}> */
     protected static function toTreeArray(Collection $categories): array
     {
-        return $categories->map(fn (Category $cat) => [
-            'id'       => $cat->id,
-            'name'     => $cat->name, 
-            'slug'     => $cat->slug,
-            'children' => static::toTreeArray($cat->recursiveChildren),
+        return $categories->map(static fn (Category $category): array => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'children' => self::toTreeArray($category->recursiveChildren),
         ])->all();
     }
 
-    // -------------------------------------------------------------------------
-    // Model events
-    // Keeps materialized paths and the cache in sync automatically.
-    // -------------------------------------------------------------------------
- 
     protected static function booted(): void
     {
-        // Before saving: rebuild this category's materialized path
-        // whenever parent_id has changed (or on first creation).
-        static::saving(function (Category $category) {
-            if ($category->isDirty('parent_id') || ! $category->exists) {
-                $category->rebuildPath();
+        static::saving(function (Category $category): void {
+            if (! $category->isDirty('parent_id') && $category->exists) {
+                return;
             }
+
+            $category->ensureValidParent();
+            $category->rebuildPath();
         });
- 
-        // After saving: if parent changed, rebuild all descendants' paths
-        // and bust the menu cache.
-        static::saved(function (Category $category) {
+
+        static::saved(function (Category $category): void {
             if ($category->wasChanged('parent_id')) {
                 $category->rebuildDescendantPaths();
             }
-            static::clearTreeCache();
+
+            self::clearTreeCache();
         });
- 
-        // Bust the cache on delete and restore too.
-        static::deleted(fn () => static::clearTreeCache());
-        static::restored(fn () => static::clearTreeCache());
+
+        static::forceDeleting(function (Category $category): void {
+            $category->children()->withTrashed()->eachById(function (Category $child): void {
+                $child->parent_id = null;
+                $child->save();
+            });
+        });
+
+        static::deleted(static function (): void {
+            self::clearTreeCache();
+        });
+
+        static::restored(static function (): void {
+            self::clearTreeCache();
+        });
+    }
+
+    private function ensureValidParent(): void
+    {
+        if ($this->parent_id === null) {
+            return;
+        }
+
+        $parent = static::withTrashed()->find($this->parent_id);
+
+        if ($parent === null || $parent->trashed()) {
+            throw ValidationException::withMessages(['parent_id' => 'The selected parent category is unavailable.']);
+        }
+
+        if ($this->exists && ($parent->is($this) || in_array((string) $this->id, explode('/', (string) $parent->materialized_path), true))) {
+            throw ValidationException::withMessages(['parent_id' => 'A category cannot be its own descendant.']);
+        }
     }
 }

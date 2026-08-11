@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
     'page_id',
@@ -19,61 +21,64 @@ use Illuminate\Database\Eloquent\Model;
 ])]
 class PageRevision extends Model
 {
-
-    protected function casts() {
+    protected function casts(): array
+    {
         return [
             'content' => 'array',
             'publish_at' => 'datetime',
-            'published_at' => 'datetime'
+            'published_at' => 'datetime',
         ];
     }
     // -------------------------------------------------------------------------
     // Workflow status constants
     // Use these throughout the app instead of raw strings to avoid typos.
     // -------------------------------------------------------------------------
- 
+
     const STATUS_DRAFT = 'draft';
+
     const STATUS_PENDING_REVIEW = 'pending_review';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_PUBLISHED = 'published';
- 
+
     // -------------------------------------------------------------------------
     // Relationships
     // -------------------------------------------------------------------------
- 
+
     /**
      * The page this revision belongs to.
      */
-    public function page()
+    public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
     }
- 
+
     /**
      * The user who submitted this revision for review.
      */
-    public function submittedBy()
+    public function submittedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'submitted_by');
     }
- 
+
     /**
      * The user who approved this revision.
      */
-    public function approvedBy()
+    public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
- 
+
     /**
      * All media attached to this revision (polymorphic).
      * Scoped by collection below for convenience.
      */
-    public function media()
+    public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable')->orderBy('sort_order');
     }
- 
+
     /**
      * Gallery images for this revision.
      * e.g. background images, section photos, OG image uploads.
@@ -82,11 +87,11 @@ class PageRevision extends Model
     {
         return $this->media()->where('collection', 'gallery');
     }
- 
+
     // -------------------------------------------------------------------------
     // Workflow helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Submit this revision for editorial review.
      * Call from the service layer after permission check.
@@ -94,22 +99,22 @@ class PageRevision extends Model
     public function submitForReview(User $submitter)
     {
         $this->update([
-            'status'       => self::STATUS_PENDING_REVIEW,
+            'status' => self::STATUS_PENDING_REVIEW,
             'submitted_by' => $submitter->id,
         ]);
     }
- 
+
     /**
      * Approve this revision (allows a publisher to publish it).
      */
     public function approve(User $approver)
     {
         $this->update([
-            'status'      => self::STATUS_APPROVED,
+            'status' => self::STATUS_APPROVED,
             'approved_by' => $approver->id,
         ]);
     }
- 
+
     /**
      * Reject back to draft (e.g. reviewer requests changes).
      */
@@ -117,7 +122,7 @@ class PageRevision extends Model
     {
         $this->update(['status' => self::STATUS_DRAFT]);
     }
- 
+
     /**
      * Whether this revision is the currently live one on its page.
      */
@@ -125,11 +130,11 @@ class PageRevision extends Model
     {
         return $this->page->published_revision_id === $this->id;
     }
- 
+
     // -------------------------------------------------------------------------
     // Content helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Safely retrieve a nested value from the content JSON.
      * Avoids null errors when a section key doesn't exist yet.
@@ -140,28 +145,35 @@ class PageRevision extends Model
     {
         return data_get($this->content, $key, $default);
     }
- 
+
     // -------------------------------------------------------------------------
     // Scopes
     // -------------------------------------------------------------------------
- 
+
     public function scopeDraft($query)
     {
         return $query->where('status', self::STATUS_DRAFT);
     }
- 
+
     public function scopePendingReview($query)
     {
         return $query->where('status', self::STATUS_PENDING_REVIEW);
     }
- 
+
     public function scopeApproved($query)
     {
         return $query->where('status', self::STATUS_APPROVED);
     }
- 
+
     public function scopePublished($query)
     {
         return $query->where('status', self::STATUS_PUBLISHED);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(static function (PageRevision $revision): void {
+            $revision->media()->eachById(static fn (Media $media): bool => $media->delete());
+        });
     }
 }

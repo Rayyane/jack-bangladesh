@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use InvalidArgumentException;
 
 #[Fillable(['slug', 'template_key', 'published_revision_id'])]
 class Page extends Model
@@ -15,10 +16,9 @@ class Page extends Model
     use SoftDeletes;
 
     /**
-    * All revisions for this page, newest first.
-    * This is the full history — draft, pending, approved, published, all of it.
-    */
-
+     * All revisions for this page, newest first.
+     * This is the full history — draft, pending, approved, published, all of it.
+     */
     public function revisions(): HasMany
     {
         return $this->hasMany(PageRevision::class)->latest();
@@ -33,7 +33,6 @@ class Page extends Model
      * The FK (published_revision_id) lives on the pages table, pointing into
      * page_revisions — that's what makes it a belongsTo.
      */
-
     public function publishedRevision(): BelongsTo
     {
         return $this->belongsTo(PageRevision::class, 'published_revision_id');
@@ -43,7 +42,6 @@ class Page extends Model
      * The latest draft revision — what an editor would pick up and continue.
      * Returns null if no draft exists (e.g. published content with no active edit).
      */
-
     public function latestDraft(): ?PageRevision
     {
         return $this->revisions()->where('status', 'draft')->first();
@@ -53,7 +51,6 @@ class Page extends Model
      * Slug history entries for this page (polymorphic).
      * Used to serve 301 redirects when a slug changes.
      */
-
     public function slugHistory(): MorphMany
     {
         return $this->morphMany(SlugHistory::class, 'sluggable');
@@ -62,7 +59,7 @@ class Page extends Model
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Publish a specific revision. Updates the pointer and marks the
      * revision as published. Wrap in a DB transaction in the service layer.
@@ -72,19 +69,18 @@ class Page extends Model
      */
     public function publish(PageRevision $revision): void
     {
-        if ($revision->page_id === $this->id ) {
-            $revision->update([
-                'status' => 'published',
-                'published_at' => now(),
-            ]);
- 
-            $this->update([
-                'published_revision_id' => $revision->id,
-            ]);
+        if ((int) $revision->page_id !== (int) $this->id) {
+            throw new InvalidArgumentException('The revision does not belong to this page.');
         }
-        
+
+        $revision->update([
+            'status' => PageRevision::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+
+        $this->update(['published_revision_id' => $revision->id]);
     }
- 
+
     /**
      * Whether this page has any live content visible to the public.
      */
@@ -92,7 +88,7 @@ class Page extends Model
     {
         return ! is_null($this->published_revision_id);
     }
- 
+
     /**
      * Create a new draft revision, optionally seeding it from the
      * currently published revision so editors start with existing content.
@@ -107,9 +103,27 @@ class Page extends Model
                 'og_image_path',
             ])
             : [];
- 
+
         return $this->revisions()->create(array_merge($seed, $attributes, [
-            'status' => 'draft',
+            'status' => PageRevision::STATUS_DRAFT,
         ]));
+    }
+
+    protected static function booted(): void
+    {
+        static::created(static function (Page $page): void {
+            SlugHistory::record($page, $page->slug);
+        });
+
+        static::updated(static function (Page $page): void {
+            if ($page->wasChanged('slug')) {
+                SlugHistory::record($page, $page->slug);
+            }
+        });
+
+        static::forceDeleting(static function (Page $page): void {
+            $page->revisions()->eachById(static fn (PageRevision $revision): bool => $revision->delete());
+            $page->slugHistory()->delete();
+        });
     }
 }

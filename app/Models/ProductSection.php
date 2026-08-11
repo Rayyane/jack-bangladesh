@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['product_revision_id', 'title', 'description', 'image_path', 'image_alt', 'sort_order'])]
 
 class ProductSection extends Model
 {
-    protected function casts() {
+    protected function casts(): array
+    {
         return [
             'sort_order' => 'integer',
         ];
@@ -18,15 +20,16 @@ class ProductSection extends Model
     // -------------------------------------------------------------------------
     // Relationships
     // -------------------------------------------------------------------------
- 
-    public function revision() {
+
+    public function revision(): BelongsTo
+    {
         return $this->belongsTo(ProductRevision::class, 'product_revision_id');
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Whether this section has an image.
      */
@@ -34,7 +37,7 @@ class ProductSection extends Model
     {
         return ! is_null($this->image_path);
     }
- 
+
     /**
      * Whether this section has a description body.
      */

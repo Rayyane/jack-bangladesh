@@ -4,30 +4,34 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
     'sluggable_type',
     'sluggable_id',
     'slug',
-    'is_current'
+    'is_current',
 ])]
 
 class SlugHistory extends Model
 {
-    protected function casts() {
+    protected $table = 'slug_history';
+
+    protected function casts(): array
+    {
         return [
-            'is_current' => 'boolean'
+            'is_current' => 'boolean',
         ];
     }
 
     // -------------------------------------------------------------------------
     // Relationships
     // -------------------------------------------------------------------------
- 
+
     /**
      * The owning model (Page or Product) for this slug entry.
      */
-    public function sluggable()
+    public function sluggable(): MorphTo
     {
         return $this->morphTo();
     }
@@ -35,7 +39,7 @@ class SlugHistory extends Model
     // -------------------------------------------------------------------------
     // Static helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Record a new slug for a model, marking it as current and retiring
      * any previously current slug for the same model.
@@ -52,16 +56,16 @@ class SlugHistory extends Model
             ->where('sluggable_id', $model->getKey())
             ->where('is_current', true)
             ->update(['is_current' => false]);
- 
+
         // Record the new current slug.
         return static::create([
             'sluggable_type' => $model->getMorphClass(),
-            'sluggable_id'   => $model->getKey(),
-            'slug'           => $newSlug,
-            'is_current'     => true,
+            'sluggable_id' => $model->getKey(),
+            'slug' => $newSlug,
+            'is_current' => true,
         ]);
     }
- 
+
     /**
      * Resolve a slug to its owning model (Page or Product).
      * Returns null if the slug has never existed.
@@ -79,7 +83,7 @@ class SlugHistory extends Model
     {
         return static::where('slug', $slug)->first();
     }
- 
+
     /**
      * Get the current (live) slug string for a given model.
      * Returns null if no slug has been recorded yet.
@@ -94,16 +98,16 @@ class SlugHistory extends Model
             ->where('is_current', true)
             ->value('slug');
     }
- 
+
     // -------------------------------------------------------------------------
     // Scopes
     // -------------------------------------------------------------------------
- 
+
     public function scopeCurrent($query)
     {
         return $query->where('is_current', true);
     }
- 
+
     public function scopeRetired($query)
     {
         return $query->where('is_current', false);
