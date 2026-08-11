@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
-import PasskeyVerify from '@/components/PasskeyVerify.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
-import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import { home } from '@/routes';
 
 defineOptions({
     layout: {
@@ -36,13 +33,11 @@ defineProps<{
         {{ status }}
     </div>
 
-    <PasskeyVerify />
-
     <Form
         v-bind="store.form()"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-6 font-roboto"
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
@@ -63,14 +58,14 @@ defineProps<{
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
                     <Label for="password">Password</Label>
-                    <TextLink
+                    <!-- <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
                         Forgot your password?
-                    </TextLink>
+                    </TextLink> -->
                 </div>
                 <PasswordInput
                     id="password"
@@ -92,7 +87,7 @@ defineProps<{
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                class="mt-4 w-full bg-jack-blue font-roboto"
                 :tabindex="4"
                 :disabled="processing"
                 data-test="login-button"
@@ -100,11 +95,18 @@ defineProps<{
                 <Spinner v-if="processing" />
                 Log in
             </Button>
+
+            <Button
+                :href="home()"
+                class="-mt-1.25 w-full bg-white border border-jack-blue text-jack-blue font-roboto hover:bg-jack-blue hover:text-white"
+            >
+            Cancel
+            </Button>
         </div>
 
-        <div class="text-center text-sm text-muted-foreground">
+        <!-- <div class="text-center text-sm text-muted-foreground">
             Don't have an account?
             <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
-        </div>
+        </div> -->
     </Form>
 </template>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import {
     Card,
     CardContent,
@@ -18,17 +17,18 @@ defineProps<{
 
 <template>
     <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10"
+        class="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 bg-jack-blue"
     >
         <div class="flex w-full max-w-md flex-col gap-6">
             <Link
                 :href="home()"
                 class="flex items-center gap-2 self-center font-medium"
             >
-                <div class="flex h-9 w-9 items-center justify-center">
-                    <AppLogoIcon
+                <div class="flex h-16 items-center justify-center">
+                    <!-- <AppLogoIcon
                         class="size-9 fill-current text-black dark:text-white"
-                    />
+                    /> -->
+                    <img src="/jacklogo.png" alt="Jack Logo" class="w-auto object-contain" />
                 </div>
             </Link>
 
@@ -40,7 +40,7 @@ defineProps<{
                             {{ description }}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent class="px-10 py-8">
+                    <CardContent class="px-10 py-2">
                         <slot />
                     </CardContent>
                 </Card>
