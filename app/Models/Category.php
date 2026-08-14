@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[Fillable(['parent_id', 'name', 'slug', 'sort_order', 'show_in_nav'])]
+#[Fillable(['parent_id', 'name', 'slug', 'sort_order', 'is_featured', 'show_in_nav'])]
 class Category extends Model
 {
     use LogsActivity, SoftDeletes;
@@ -27,6 +27,7 @@ class Category extends Model
     {
         return [
             'sort_order' => 'integer',
+            'is_featured' => 'boolean',
             'show_in_nav' => 'boolean',
         ];
     }

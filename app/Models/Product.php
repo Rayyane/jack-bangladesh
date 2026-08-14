@@ -10,10 +10,17 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use InvalidArgumentException;
 
-#[Fillable(['category_id', 'slug', 'published_revision_id'])]
+#[Fillable(['category_id', 'slug', 'is_featured', 'published_revision_id'])]
 class Product extends Model
 {
     use SoftDeletes;
+
+    protected function casts(): array
+    {
+        return [
+            'is_featured' => 'boolean',
+        ];
+    }
 
     public function category(): BelongsTo
     {

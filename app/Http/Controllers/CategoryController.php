@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -140,7 +142,14 @@ class CategoryController extends Controller
             ]);
         }
  
-        $category->delete();
+        DB::transaction(function () use ($category) {
+            // Manually null out category_id on affected products
+            // before soft-deleting, since nullOnDelete() won't fire.
+            Product::where('category_id', $category->id)
+                ->update(['category_id' => null]);
+
+            $category->delete();
+        });
  
         return redirect()
             ->route('cms.categories.index')
