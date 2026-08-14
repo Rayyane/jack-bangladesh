@@ -1,26 +1,32 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ClipboardCheck, FileText, FolderTree, Package, Plus, ShieldCheck } from '@lucide/vue';
+import {
+    ClipboardCheck,
+    FileText,
+    FolderTree,
+    Package,
+    Plus,
+    ShieldCheck,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { BreadcrumbItem } from '@/types';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/cms',
-    },
-];
 
 defineOptions({
     layout: {
-        breadcrumbs,
+        breadcrumbs: [
+            {
+                title: 'Dashboard',
+                href: '/cms',
+            },
+        ],
     },
 });
 
 const page = usePage();
-const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'));
+const isSuperAdmin = computed(() =>
+    page.props.auth.roles.includes('super_admin'),
+);
 </script>
 
 <template>
@@ -28,8 +34,12 @@ const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'
 
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
         <div class="flex flex-col gap-1">
-            <h1 class="text-2xl font-semibold tracking-normal">CMS Dashboard</h1>
-            <p class="text-sm text-muted-foreground">Manage pages, products, and publishing workflows.</p>
+            <h1 class="text-2xl font-semibold tracking-normal">
+                CMS Dashboard
+            </h1>
+            <p class="text-sm text-muted-foreground">
+                Manage pages, products, and publishing workflows.
+            </p>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -39,7 +49,11 @@ const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'
                     <CardTitle class="text-base">Pages</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button variant="outline" as-child class="w-full justify-between">
+                    <Button
+                        variant="outline"
+                        as-child
+                        class="w-full justify-between"
+                    >
                         <Link href="/cms/pages">
                             Manage pages
                             <FileText class="size-4" />
@@ -54,7 +68,11 @@ const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'
                     <CardTitle class="text-base">Products</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button variant="outline" as-child class="w-full justify-between">
+                    <Button
+                        variant="outline"
+                        as-child
+                        class="w-full justify-between"
+                    >
                         <Link href="/cms/products">
                             Manage products
                             <Package class="size-4" />
@@ -69,7 +87,11 @@ const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'
                     <CardTitle class="text-base">Categories</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Button variant="outline" as-child class="w-full justify-between">
+                    <Button
+                        variant="outline"
+                        as-child
+                        class="w-full justify-between"
+                    >
                         <Link href="/cms/categories">
                             Manage categories
                             <FolderTree class="size-4" />
@@ -99,7 +121,12 @@ const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'
                         <Plus class="size-4" />
                     </Link>
                 </Button>
-                <Button v-if="isSuperAdmin" variant="outline" as-child class="justify-between">
+                <Button
+                    v-if="isSuperAdmin"
+                    variant="outline"
+                    as-child
+                    class="justify-between"
+                >
                     <Link href="/cms/review-queue">
                         Review queue
                         <ShieldCheck class="size-4" />

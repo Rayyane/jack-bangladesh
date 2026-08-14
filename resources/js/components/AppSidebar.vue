@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { FolderTree, LayoutGrid, PanelsTopLeft, Package, ShieldCheck } from '@lucide/vue';
+import {
+    FolderTree,
+    LayoutGrid,
+    PanelsTopLeft,
+    Package,
+    ShieldCheck,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -20,7 +25,9 @@ import type { NavItem } from '@/types';
 const cmsDashboardUrl = '/cms';
 const page = usePage();
 
-const isSuperAdmin = computed(() => page.props.auth.roles.includes('super_admin'));
+const isSuperAdmin = computed(() =>
+    page.props.auth.roles.includes('super_admin'),
+);
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -58,8 +65,6 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     return items;
 });
-
-const footerNavItems: NavItem[] = [];
 </script>
 
 <template>
@@ -81,7 +86,6 @@ const footerNavItems: NavItem[] = [];
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
