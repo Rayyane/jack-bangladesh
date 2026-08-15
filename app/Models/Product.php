@@ -92,6 +92,8 @@ class Product extends Model
                 'description',
                 'meta_title',
                 'meta_description',
+                'card_image_path',
+                'primary_image_path',
             ])
             : [];
 
@@ -139,10 +141,18 @@ class Product extends Model
             SlugHistory::record($product, $product->slug);
         });
 
+        static::saved(function () {
+            Category::clearTreeCache();
+        });
+
         static::updated(static function (Product $product): void {
             if ($product->wasChanged('slug')) {
                 SlugHistory::record($product, $product->slug);
             }
+        });
+
+        static::deleted(function () {
+            Category::clearTreeCache();
         });
 
         static::forceDeleting(static function (Product $product): void {

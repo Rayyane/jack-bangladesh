@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-#[Fillable(['parent_id', 'name', 'slug', 'sort_order', 'is_featured', 'show_in_nav'])]
+#[Fillable(['parent_id', 'name', 'slug', 'image_path', 'sort_order', 'is_featured', 'show_in_nav'])]
 class Category extends Model
 {
     use LogsActivity, SoftDeletes;
@@ -63,6 +63,13 @@ class Category extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function leafProducts(): HasMany
+    {
+        return $this->hasMany(Product::class, 'category_id')
+            ->whereNotNull('published_revision_id')
+            ->limit(10); // guard against oversized dropdowns
     }
 
     /** @return Collection<int, Category> */
@@ -138,9 +145,15 @@ class Category extends Model
     /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
     protected static function buildTree(): array
     {
-        return self::toTreeArray(
-            static::query()->with('recursiveChildren')->whereNull('parent_id')->orderBy('sort_order')->get(),
-        );
+        $roots = static::with([
+            'recursiveChildren',
+            'recursiveChildren.leafProducts.publishedRevision',
+        ])
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->get();
+
+        return static::toTreeArray($roots);
     }
 
     /** @param Collection<int, Category> $categories
@@ -151,7 +164,14 @@ class Category extends Model
             'id' => $category->id,
             'name' => $category->name,
             'slug' => $category->slug,
-            'children' => self::toTreeArray($category->recursiveChildren),
+            'children' => static::toTreeArray($category->recursiveChildren),
+            // Only load products for leaf nodes (no children)
+            'products' => $category->recursiveChildren->isEmpty()
+                ? $category->leafProducts->map(fn ($p) => [
+                    'name' => $p->publishedRevision?->name,
+                    'slug' => $p->slug,
+                ])->filter(fn ($p) => $p['name'] !== null)->values()
+                : [],
         ])->all();
     }
 
