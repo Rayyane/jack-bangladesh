@@ -7,7 +7,9 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,13 +22,14 @@ class CategoryController extends Controller
      */
     public function index(): Response
     {
-        $categories = Category::with('recursiveChildren')
+        $categories = Category::withCount('products')
+            ->with('recursiveChildrenWithProductCount')
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
  
         return Inertia::render('Cms/Categories/Index', [
-            'categories' => $categories,
+            'categories' => $this->managementTree($categories),
         ]);
     }
 
@@ -43,10 +46,17 @@ class CategoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $isFeatured = $request->boolean('is_featured');
+
         $validated = $request->validate([
-            'name'      => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'exists:categories,id'],
+            'name'       => ['required', 'string', 'max:255', 'unique:categories'],
+            'parent_id'  => ['nullable', 'exists:categories,id'],
             'sort_order' => ['integer', 'min:0'],
+            'image'      => [Rule::requiredIf($isFeatured), 'nullable', 'image', 'max:5120'],
+            'is_featured' => ['boolean'],
+            'show_in_nav' => ['boolean'],
+        ], [
+            'image.required' => 'A featured category must have an image.',
         ]);
  
         // Auto-generate slug from name. The Category model's booted()
@@ -60,6 +70,18 @@ class CategoryController extends Controller
             $validated['slug'] = $originalSlug . '-' . $count++;
         }
  
+        $validated['image_path'] = isset($validated['image'])
+            ? $validated['image']->store('categories', 'public')
+            : null;
+        unset($validated['image']);
+        $validated['is_featured'] = $isFeatured;
+        // Only root categories appear in the navbar's first level.
+        $validated['show_in_nav'] = $validated['parent_id'] === null
+            ? ($validated['show_in_nav'] ?? false)
+            : false;
+        $validated['sort_order'] = $validated['sort_order']
+            ?? $this->nextSortOrder($validated['parent_id']);
+
         Category::create($validated);
  
         // Tree cache is invalidated automatically by the Category model's
@@ -76,7 +98,16 @@ class CategoryController extends Controller
     public function edit(Category $category): Response
     {
         return Inertia::render('Cms/Categories/Edit', [
-            'category'      => $category,
+            'category'      => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+                'sort_order' => $category->sort_order,
+                'is_featured' => $category->is_featured,
+                'show_in_nav' => $category->show_in_nav,
+                'image_path' => $category->image_path,
+                'image_url' => $category->image_path ? Storage::url($category->image_path) : null,
+            ],
             // Exclude the category itself and its descendants from the
             // parent picker — you can't reparent a category under itself.
             'parentOptions' => $this->flatCategoryList(exclude: $category),
@@ -88,10 +119,17 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category): RedirectResponse
     {
+        $isFeatured = $request->boolean('is_featured');
+
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
-            'parent_id'  => ['nullable', 'exists:categories,id'],
-            'sort_order' => ['integer', 'min:0'],
+            'name'        => ['required', 'string', 'max:255'],
+            'parent_id'   => ['nullable', 'exists:categories,id'],
+            'sort_order'  => ['integer', 'min:0'],
+            'image'       => [Rule::requiredIf($isFeatured && ! $category->image_path), 'nullable', 'image', 'max:5120'],
+            'is_featured' => ['boolean'],
+            'show_in_nav' => ['boolean'],
+        ], [
+            'image.required' => 'A featured category must have an image.',
         ]);
  
         // Prevent circular reparenting — a category cannot be made a
@@ -116,9 +154,26 @@ class CategoryController extends Controller
             $validated['slug'] = $newSlug;
         }
  
+        $oldImagePath = $category->image_path;
+
+        if (isset($validated['image'])) {
+            $newImagePath = $validated['image']->store('categories', 'public');
+            unset($validated['image']);
+            $validated['image_path'] = $newImagePath;
+        }
+
+        $validated['is_featured'] = $isFeatured;
+        $validated['show_in_nav'] = $validated['parent_id'] === null
+            ? ($validated['show_in_nav'] ?? false)
+            : false;
+
         // materialized_path and descendant paths are rebuilt automatically
         // by the Category model's saving/saved events when parent_id changes.
         $category->update($validated);
+
+        if (isset($validated['image_path']) && $oldImagePath) {
+            Storage::disk('public')->delete($oldImagePath);
+        }
  
         return redirect()
             ->route('cms.categories.index')
@@ -142,18 +197,38 @@ class CategoryController extends Controller
             ]);
         }
  
+        $imagePath = $category->image_path;
+
         DB::transaction(function () use ($category) {
             // Manually null out category_id on affected products
             // before soft-deleting, since nullOnDelete() won't fire.
             Product::where('category_id', $category->id)
                 ->update(['category_id' => null]);
 
-            $category->delete();
+            $category->forceDelete();
         });
+
+        if ($imagePath) {
+            Storage::disk('public')->delete($imagePath);
+        }
  
         return redirect()
             ->route('cms.categories.index')
             ->with('success', 'Category deleted.');
+    }
+
+    /**
+     * Display only the parent categories that are visible in the navbar.
+     */
+    public function sort(): Response
+    {
+        return Inertia::render('Cms/Categories/Sort', [
+            'categories' => Category::query()
+                ->whereNull('parent_id')
+                ->where('show_in_nav', true)
+                ->orderBy('sort_order')
+                ->get(['id', 'name', 'sort_order']),
+        ]);
     }
 
     /**
@@ -170,11 +245,24 @@ class CategoryController extends Controller
             'categories.*.sort_order' => ['required', 'integer', 'min:0'],
         ]);
  
-        foreach ($validated['categories'] as $item) {
-            Category::where('id', $item['id'])->update([
-                'sort_order' => $item['sort_order'],
+        $rootIds = collect($validated['categories'])->pluck('id');
+        $rootCount = Category::query()
+            ->whereNull('parent_id')
+            ->where('show_in_nav', true)
+            ->whereIn('id', $rootIds)
+            ->count();
+
+        if ($rootCount !== $rootIds->count()) {
+            return back()->withErrors([
+                'categories' => 'Only parent categories shown in the navigation can be reordered.',
             ]);
         }
+
+        DB::transaction(function () use ($rootIds): void {
+            $rootIds->values()->each(function (int $id, int $sortOrder): void {
+                Category::whereKey($id)->update(['sort_order' => $sortOrder]);
+            });
+        });
  
         // Clear the tree cache once after all updates, not once per row.
         Category::clearTreeCache();
@@ -247,5 +335,32 @@ class CategoryController extends Controller
             || str_contains($path, '/' . $category->id . '/')
             || str_starts_with($path, $category->id . '/')
             || str_ends_with($path, '/' . $category->id);
+    }
+
+    private function nextSortOrder(?int $parentId): int
+    {
+        return (int) Category::query()
+            ->where('parent_id', $parentId)
+            ->max('sort_order') + 1;
+    }
+
+    /**
+     * Shape the recursive Eloquent relationship into the `children` key
+     * consumed by the CMS tree component.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection<int, Category> $categories
+     * @return array<int, array{id: int, name: string, image_path: ?string, is_featured: bool, show_in_nav: bool, product_count: int, children: array}>
+     */
+    private function managementTree(\Illuminate\Database\Eloquent\Collection $categories): array
+    {
+        return $categories->map(fn (Category $category): array => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'image_path' => $category->image_path,
+            'is_featured' => $category->is_featured,
+            'show_in_nav' => $category->show_in_nav,
+            'product_count' => $category->products_count,
+            'children' => $this->managementTree($category->recursiveChildrenWithProductCount),
+        ])->all();
     }
 }

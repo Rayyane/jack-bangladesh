@@ -7,16 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'product_id',
     'status',
     'name',
+    'card_image_path',
+    'primary_image_path',
     'description',
+    'price',
     'meta_title',
     'meta_description',
+    'video_url',
     'submitted_by',
     'approved_by',
+    'rejection_reason',
     'publish_at',
     'published_at',
 ])]
@@ -104,6 +110,8 @@ class ProductRevision extends Model
         $this->update([
             'status' => self::STATUS_PENDING_REVIEW,
             'submitted_by' => $submitter->id,
+            'approved_by' => null,
+            'rejection_reason' => null,
         ]);
     }
 
@@ -121,9 +129,14 @@ class ProductRevision extends Model
     /**
      * Reject back to draft (reviewer requests changes).
      */
-    public function reject(): void
+    public function reject(?string $reason = null): void
     {
-        $this->update(['status' => self::STATUS_DRAFT]);
+        $this->update([
+            'status' => self::STATUS_DRAFT,
+            'rejection_reason' => $reason,
+            'submitted_by' => null,
+            'approved_by' => null,
+        ]);
     }
 
     /**
@@ -162,6 +175,12 @@ class ProductRevision extends Model
     {
         static::deleting(static function (ProductRevision $revision): void {
             $revision->media()->eachById(static fn (Media $media): bool => $media->delete());
+
+            foreach (['primary_image_path', 'card_image_path'] as $column) {
+                if ($revision->{$column}) {
+                    Storage::disk('public')->delete($revision->{$column});
+                }
+            }
         });
     }
 }

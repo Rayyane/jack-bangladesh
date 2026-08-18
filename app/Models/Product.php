@@ -89,11 +89,13 @@ class Product extends Model
         $seed = $this->publishedRevision
             ? $this->publishedRevision->only([
                 'name',
-                'description',
-                'meta_title',
-                'meta_description',
                 'card_image_path',
                 'primary_image_path',
+                'description',
+                'price',
+                'meta_title',
+                'meta_description',
+                'video_url',
             ])
             : [];
 
@@ -122,6 +124,20 @@ class Product extends Model
                 'image_path',
                 'image_alt',
                 'sort_order',
+            ]));
+        }
+    }
+
+    /** Copy gallery and specification media records when creating a new draft. */
+    public function copyMediaToDraft(ProductRevision $draft): void
+    {
+        if (! $this->publishedRevision) {
+            return;
+        }
+
+        foreach ($this->publishedRevision->media as $media) {
+            $draft->media()->create($media->only([
+                'collection', 'path', 'disk', 'mime_type', 'size', 'alt_text', 'is_primary', 'sort_order',
             ]));
         }
     }

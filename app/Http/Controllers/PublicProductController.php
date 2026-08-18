@@ -47,7 +47,11 @@ class PublicProductController extends Controller
                 'category' => $product->category
                     ? ['name' => $product->category->name, 'slug' => $product->category->slug]
                     : null,
-                'image'    => $product->publishedRevision->gallery->first()?->url,
+                'image'    => $product->publishedRevision->card_image_path
+                    ? \Illuminate\Support\Facades\Storage::url($product->publishedRevision->card_image_path)
+                    : ($product->publishedRevision->primary_image_path
+                        ? \Illuminate\Support\Facades\Storage::url($product->publishedRevision->primary_image_path)
+                        : $product->publishedRevision->gallery->first()?->url),
             ]),
  
             // Full category tree for the sidebar/filter panel.
@@ -140,8 +144,13 @@ class PublicProductController extends Controller
             'revision' => [
                 'name'             => $revision->name,
                 'description'      => $revision->description,
+                'price'            => $revision->price,
                 'meta_title'       => $revision->meta_title,
                 'meta_description' => $revision->meta_description,
+                'video_url'        => $revision->video_url,
+                'primary_image_url' => $revision->primary_image_path
+                    ? \Illuminate\Support\Facades\Storage::url($revision->primary_image_path)
+                    : null,
                 'sections'         => $revision->sections->map(fn (ProductSection $s) => [
                     'id'          => $s->id,
                     'title'       => $s->title,

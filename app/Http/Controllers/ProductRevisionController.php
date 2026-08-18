@@ -26,6 +26,7 @@ class ProductRevisionController extends Controller
                 'name' => $rev->name,
                 'submitted_by' => $rev->submittedBy?->name,
                 'approved_by' => $rev->approvedBy?->name,
+                'rejection_reason' => $rev->rejection_reason,
                 'publish_at' => $rev->publish_at?->toDateTimeString(),
                 'published_at' => $rev->published_at?->toDateTimeString(),
                 'created_at' => $rev->created_at->toDateTimeString(),
@@ -41,6 +42,12 @@ class ProductRevisionController extends Controller
                     ?? '(Untitled)',
             ],
             'revisions' => $revisions,
+            'can_create_draft' => ! $product->revisions()
+                ->whereIn('status', [
+                    ProductRevision::STATUS_PENDING_REVIEW,
+                    ProductRevision::STATUS_APPROVED,
+                ])
+                ->exists(),
         ]);
     }
 
@@ -62,9 +69,21 @@ class ProductRevisionController extends Controller
             ]);
         }
 
+        if ($product->revisions()
+            ->whereIn('status', [
+                ProductRevision::STATUS_PENDING_REVIEW,
+                ProductRevision::STATUS_APPROVED,
+            ])
+            ->exists()) {
+            return back()->withErrors([
+                'draft' => 'A revision is already under review or approved. It must be rejected or published before starting another draft.',
+            ]);
+        }
+
         DB::transaction(function () use ($product) {
             $draft = $product->createDraft();
             $product->copySectionsToDraft($draft);
+            $product->copyMediaToDraft($draft);
         });
 
         return redirect()
@@ -86,6 +105,14 @@ class ProductRevisionController extends Controller
             403,
             'Only drafts can be submitted for review.'
         );
+
+        if (! $revision->primary_image_path
+            || ($product->is_featured && ! $revision->card_image_path)
+            || ! $revision->specifications()->exists()) {
+            return back()->withErrors([
+                'draft' => 'Complete the required primary image, featured card image, and specification sheet before submitting.',
+            ]);
+        }
 
         $revision->submitForReview($this->authenticatedUser());
 
@@ -131,7 +158,7 @@ class ProductRevisionController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $revision->reject();
+        $revision->reject(request('reason'));
 
         return redirect()
             ->route('cms.products.revisions.index', $product)

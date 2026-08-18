@@ -59,7 +59,8 @@ class ReviewQueueController extends Controller
                 'links' => [
                     'approve' => route('cms.products.revisions.approve', [$rev->product_id, $rev->id]),
                     'reject'  => route('cms.products.revisions.reject',  [$rev->product_id, $rev->id]),
-                    'view'    => route('cms.products.edit', $rev->product_id),
+                    // Pending revisions are locked; inspect them in history.
+                    'view'    => route('cms.products.revisions.index', $rev->product_id),
                     'history' => route('cms.products.revisions.index', $rev->product_id),
                 ],
             ]);

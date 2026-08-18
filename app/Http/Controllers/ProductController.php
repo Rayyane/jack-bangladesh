@@ -74,6 +74,8 @@ class ProductController extends Controller
                         'status' => $product->revisions->first()->status,
                     ]
                     : null,
+                'can_edit' => ! $product->revisions->first()
+                    || $product->revisions->first()->status === ProductRevision::STATUS_DRAFT,
             ]),
  
             // Pass filter state back so Vue can populate filter controls.
@@ -111,19 +113,26 @@ class ProductController extends Controller
             'is_featured'              => ['boolean'],
             'name'                     => ['required', 'string', 'max:255'],
             'description'              => ['required', 'string'],
+            'price'                    => ['nullable', 'string', 'max:100'],
             'meta_title'               => ['nullable', 'string', 'max:255'],
             'meta_description'         => ['nullable', 'string', 'max:500'],
+            'video_url'                => ['nullable', 'url', 'max:2048'],
+            'primary_image'            => ['required', 'file', 'image', 'max:102400'],
+            'card_image'               => [Rule::requiredIf($request->boolean('is_featured')), 'nullable', 'file', 'image', 'max:5120'],
+            'spec_image'               => ['required', 'file', 'image', 'max:10240'],
  
             // Sections submitted on initial create.
             'sections'                 => ['nullable', 'array'],
             'sections.*.title'         => ['required', 'string', 'max:255'],
             'sections.*.description'   => ['nullable', 'string'],
             'sections.*.sort_order'    => ['integer', 'min:0'],
+            'section_images'           => ['nullable', 'array'],
+            'section_images.*'         => ['file', 'image', 'max:5120'],
         ]);
  
         $slug = $this->generateUniqueSlug($validated['name']);
  
-        DB::transaction(function () use ($validated, $slug) {
+        DB::transaction(function () use ($request, $validated, $slug) {
             // 1. Create the product entity.
             $product = Product::create([
                 'category_id' => $validated['category_id'] ?? null,
@@ -140,18 +149,43 @@ class ProductController extends Controller
                 'status'           => ProductRevision::STATUS_DRAFT,
                 'name'             => $validated['name'],
                 'description'      => $validated['description'],
+                'price'            => $validated['price'] ?? null,
                 'meta_title'       => $validated['meta_title'] ?? null,
                 'meta_description' => $validated['meta_description'] ?? null,
+                'video_url'        => $validated['video_url'] ?? null,
+                'primary_image_path' => $request->file('primary_image')->store('products/primary', 'public'),
+                'card_image_path' => $request->hasFile('card_image')
+                    ? $request->file('card_image')->store('products/cards', 'public')
+                    : null,
+            ]);
+
+            $specification = $request->file('spec_image');
+            $revision->media()->create([
+                'collection' => Media::COLLECTION_SPECIFICATIONS,
+                'path' => $specification->store('products/specifications', 'public'),
+                'disk' => 'public',
+                'mime_type' => $specification->getMimeType(),
+                'size' => $specification->getSize(),
+                'alt_text' => $validated['name'].' specifications',
             ]);
  
             // 4. Store any sections submitted on the create form.
             if (! empty($validated['sections'])) {
                 foreach ($validated['sections'] as $index => $section) {
-                    $revision->sections()->create([
+                    $sectionData = [
                         'title'       => $section['title'],
                         'description' => $section['description'] ?? null,
                         'sort_order'  => $section['sort_order'] ?? $index,
-                    ]);
+                    ];
+
+                    if ($request->hasFile("section_images.{$index}")) {
+                        $sectionData['image_path'] = $request
+                            ->file("section_images.{$index}")
+                            ->store('products/sections', 'public');
+                        $sectionData['image_alt'] = $section['title'];
+                    }
+
+                    $revision->sections()->create($sectionData);
                 }
             }
  
@@ -175,11 +209,20 @@ class ProductController extends Controller
             ->where('status', ProductRevision::STATUS_DRAFT)
             ->latest()
             ->first();
+
+        // Pending and approved revisions are immutable. Editors can only
+        // return here after a reviewer rejects the revision back to draft.
+        if (! $draft && $product->revisions()
+            ->whereNot('status', ProductRevision::STATUS_PUBLISHED)
+            ->exists()) {
+            abort(403, 'This product revision is locked while it is under review.');
+        }
  
         if (! $draft) {
             DB::transaction(function () use ($product, &$draft) {
                 $draft = $product->createDraft();
                 $product->copySectionsToDraft($draft);
+                $product->copyMediaToDraft($draft);
             });
         }
  
@@ -198,8 +241,12 @@ class ProductController extends Controller
                 'status'           => $draft->status,
                 'name'             => $draft->name,
                 'description'      => $draft->description,
+                'price'            => $draft->price,
                 'meta_title'       => $draft->meta_title,
                 'meta_description' => $draft->meta_description,
+                'video_url'        => $draft->video_url,
+                'primary_image_url' => $draft->primary_image_path ? Storage::url($draft->primary_image_path) : null,
+                'card_image_url' => $draft->card_image_path ? Storage::url($draft->card_image_path) : null,
                 'sections'         => $draft->sections->map(fn (ProductSection $s) => [
                     'id'          => $s->id,
                     'title'       => $s->title,
@@ -255,6 +302,10 @@ class ProductController extends Controller
             'description' => ['required', 'string'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
+            'price' => ['nullable', 'string', 'max:100'],
+            'video_url' => ['nullable', 'url', 'max:2048'],
+            'primary_image' => ['nullable', 'file', 'image', 'max:102400'],
+            'card_image' => ['nullable', 'file', 'image', 'max:5120'],
  
             // Sections — full replacement on each save.
             // The Vue form sends the complete current state of all sections.
@@ -284,6 +335,18 @@ class ProductController extends Controller
             'remove_gallery_ids' => ['nullable', 'array'],
             'remove_gallery_ids.*' => ['exists:media,id'],
         ]);
+
+        if (! $revision->primary_image_path && ! $request->hasFile('primary_image')) {
+            return back()->withErrors(['primary_image' => 'A primary product image is required.']);
+        }
+
+        if (($validated['is_featured'] ?? false) && ! $revision->card_image_path && ! $request->hasFile('card_image')) {
+            return back()->withErrors(['card_image' => 'A card image is required for featured products.']);
+        }
+
+        if (! $revision->specifications()->exists() && ! $request->hasFile('spec_image')) {
+            return back()->withErrors(['spec_image' => 'A specification sheet image is required.']);
+        }
  
         DB::transaction(function () use ($validated, $request, $product, $revision) {
  
@@ -311,9 +374,26 @@ class ProductController extends Controller
             $revision->update([
                 'name'             => $validated['name'],
                 'description'      => $validated['description'] ?? null,
+                'price'            => $validated['price'] ?? null,
                 'meta_title'       => $validated['meta_title'] ?? null,
                 'meta_description' => $validated['meta_description'] ?? null,
+                'video_url'        => $validated['video_url'] ?? null,
             ]);
+
+            foreach (['primary_image' => 'primary_image_path', 'card_image' => 'card_image_path'] as $upload => $column) {
+                if ($request->hasFile($upload)) {
+                    if ($revision->{$column}) {
+                        Storage::disk('public')->delete($revision->{$column});
+                    }
+
+                    $revision->update([
+                        $column => $request->file($upload)->store(
+                            $upload === 'primary_image' ? 'products/primary' : 'products/cards',
+                            'public'
+                        ),
+                    ]);
+                }
+            }
  
             // --- Sections ---
             // Sync the incoming sections against what's in the DB.

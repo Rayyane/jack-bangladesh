@@ -20,8 +20,8 @@ class Category extends Model
     use LogsActivity, SoftDeletes;
 
     public const CACHE_KEY = 'categories.tree';
-
-    public const CACHE_TTL = 86_400;
+    public const CACHE_TTL = 60 * 60 * 24;
+    public const NAV_PRODUCT_LIMIT = 10;
 
     protected function casts(): array
     {
@@ -35,7 +35,14 @@ class Category extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['parent_id', 'name', 'slug', 'sort_order', 'show_in_nav'])
+            ->logOnly([
+                'parent_id', 
+                'name', 
+                'slug', 
+                'sort_order', 
+                'is_featured', 
+                'show_in_nav'
+            ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('category');
@@ -59,6 +66,28 @@ class Category extends Model
         return $this->children()->with('recursiveChildren');
     }
 
+    /** @return HasMany<Category, $this> */
+    public function recursiveChildrenWithProductCount(): HasMany
+    {
+        return $this->children()
+            ->withCount('products')
+            ->with('recursiveChildrenWithProductCount');
+    }
+
+    /**
+     * Recursive tree tailored for the public navigation. It additionally
+     * eager-loads the limited product list needed by leaf dropdowns.
+     *
+     * @return HasMany<Category, $this>
+     */
+    public function recursiveNavChildren(): HasMany
+    {
+        return $this->children()->with([
+            'recursiveNavChildren',
+            'leafProducts.publishedRevision:id,product_id,name',
+        ]);
+    }
+
     /** @return HasMany<Product, $this> */
     public function products(): HasMany
     {
@@ -69,7 +98,8 @@ class Category extends Model
     {
         return $this->hasMany(Product::class, 'category_id')
             ->whereNotNull('published_revision_id')
-            ->limit(10); // guard against oversized dropdowns
+            ->orderBy('id')
+            ->limit(self::NAV_PRODUCT_LIMIT + 1);
     }
 
     /** @return Collection<int, Category> */
@@ -131,7 +161,7 @@ class Category extends Model
         });
     }
 
-    /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
+    /** @return array<int, array{id: int, name: string, slug: string, children: array, products: array, has_more: bool, product_count_label: ?string}> */
     public static function getTree(): array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, static fn (): array => self::buildTree());
@@ -146,8 +176,8 @@ class Category extends Model
     protected static function buildTree(): array
     {
         $roots = static::with([
-            'recursiveChildren',
-            'recursiveChildren.leafProducts.publishedRevision',
+            'recursiveNavChildren',
+            'leafProducts.publishedRevision:id,product_id,name',
         ])
             ->whereNull('parent_id')
             ->orderBy('sort_order')
@@ -157,22 +187,57 @@ class Category extends Model
     }
 
     /** @param Collection<int, Category> $categories
-     *  @return array<int, array{id: int, name: string, slug: string, children: array}> */
+     *  @return array<int, array{id: int, name: string, slug: string, children: array, products: array, has_more: bool, product_count_label: ?string}> */
     protected static function toTreeArray(Collection $categories): array
     {
-        return $categories->map(static fn (Category $category): array => [
-            'id' => $category->id,
-            'name' => $category->name,
-            'slug' => $category->slug,
-            'children' => static::toTreeArray($category->recursiveChildren),
-            // Only load products for leaf nodes (no children)
-            'products' => $category->recursiveChildren->isEmpty()
-                ? $category->leafProducts->map(fn ($p) => [
-                    'name' => $p->publishedRevision?->name,
-                    'slug' => $p->slug,
-                ])->filter(fn ($p) => $p['name'] !== null)->values()
-                : [],
-        ])->all();
+        return $categories
+            // Nav visibility applies only to root (parent) categories. Child
+            // categories are always displayed within their parent's dropdown.
+            ->filter(static fn (Category $category): bool => static::isVisibleInNav($category))
+            ->map(static function (Category $category): array {
+                $visibleChildren = $category->recursiveNavChildren
+                    ->filter(static fn (Category $child): bool => static::isVisibleInNav($child));
+                $isLeaf = $visibleChildren->isEmpty();
+                $products = [];
+                $hasMore = false;
+                $productCountLabel = null;
+
+                if ($isLeaf) {
+                    $fetchedProducts = $category->leafProducts;
+                    $hasMore = $fetchedProducts->count() > self::NAV_PRODUCT_LIMIT;
+
+                    $products = $fetchedProducts
+                        ->take(self::NAV_PRODUCT_LIMIT)
+                        ->map(static fn (Product $product): array => [
+                            'name' => $product->publishedRevision?->name,
+                            'slug' => $product->slug,
+                        ])
+                        ->filter(static fn (array $product): bool => $product['name'] !== null)
+                        ->values()
+                        ->all();
+
+                    $productCountLabel = $hasMore
+                        ? self::NAV_PRODUCT_LIMIT.'+'
+                        : (string) count($products);
+                }
+
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'children' => static::toTreeArray($visibleChildren),
+                    'products' => $products,
+                    'has_more' => $hasMore,
+                    'product_count_label' => $productCountLabel,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private static function isVisibleInNav(Category $category): bool
+    {
+        return $category->parent_id !== null || $category->show_in_nav;
     }
 
     protected static function booted(): void
