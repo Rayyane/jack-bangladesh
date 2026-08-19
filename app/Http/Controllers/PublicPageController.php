@@ -7,6 +7,7 @@ use App\Models\Page;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -68,11 +69,17 @@ class PublicPageController extends Controller
     private function homepageData(): array
     {
         $featuredCategories = Cache::remember(
-            'categories.featured',
+            'categories.featured.v2',
             60 * 60 * 24,
             fn () => Category::where('is_featured', true)
                 ->orderBy('sort_order')
-                ->get(['id', 'name', 'slug'])
+                ->get(['id', 'name', 'slug', 'image_path'])
+                ->map(fn (Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'image' => $category->image_path ? Storage::url($category->image_path) : null,
+                ])
                 ->toArray()
         );
  
@@ -87,7 +94,13 @@ class PublicPageController extends Controller
                 'id'    => $product->id,
                 'slug'  => $product->slug,
                 'name'  => $product->publishedRevision->name,
-                'image' => $product->publishedRevision->gallery->first()?->url,
+                'description' => $product->publishedRevision->description,
+                'image' => $product->publishedRevision->card_image_path
+                    ? Storage::url($product->publishedRevision->card_image_path)
+                    : ($product->publishedRevision->primary_image_path
+                        ? Storage::url($product->publishedRevision->primary_image_path)
+                        : $product->publishedRevision->gallery->first()?->url),
+                'leaflet' => $product->publishedRevision->specifications()->first()?->url,
             ]);
  
         return [

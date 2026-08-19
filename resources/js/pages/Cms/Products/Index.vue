@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ExternalLink, FilePenLine, Plus, Trash2 } from '@lucide/vue';
+import { ExternalLink, FilePenLine, History, Plus, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 
@@ -182,6 +182,12 @@ function paginationLabel(label: string) {
                                         :href="`/cms/products/${product.id}/edit`"
                                         title="Edit draft"
                                         ><FilePenLine
+                                            class="size-4" /></Link></Button
+                                ><Button variant="ghost" size="icon" as-child
+                                    ><Link
+                                        :href="`/cms/products/${product.id}/revisions`"
+                                        title="Revision history"
+                                        ><History
                                             class="size-4" /></Link></Button
                                 ><Button
                                     v-if="isSuperAdmin"

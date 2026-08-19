@@ -27,6 +27,7 @@ class PageRevisionController extends Controller
                 'meta_title' => $rev->meta_title,
                 'submitted_by' => $rev->submittedBy?->name,
                 'approved_by' => $rev->approvedBy?->name,
+                'rejection_reason' => $rev->rejection_reason,
                 'publish_at' => $rev->publish_at?->toDateTimeString(),
                 'published_at' => $rev->published_at?->toDateTimeString(),
                 'created_at' => $rev->created_at->toDateTimeString(),
@@ -40,6 +41,7 @@ class PageRevisionController extends Controller
                 'template_key' => $page->template_key,
             ],
             'revisions' => $revisions,
+            'can_create_draft' => ! $page->revisions()->whereIn('status', [PageRevision::STATUS_PENDING_REVIEW, PageRevision::STATUS_APPROVED])->exists(),
         ]);
     }
 
@@ -92,7 +94,7 @@ class PageRevisionController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $revision->reject();
+        $revision->reject(request('reason'));
 
         // Store the rejection reason in the session for the editor to see.
         // In a fuller implementation this would trigger a notification.
@@ -143,6 +145,10 @@ class PageRevisionController extends Controller
             return back()->withErrors([
                 'draft' => 'A draft already exists for this page. Edit that one instead.',
             ]);
+        }
+
+        if ($page->revisions()->whereIn('status', [PageRevision::STATUS_PENDING_REVIEW, PageRevision::STATUS_APPROVED])->exists()) {
+            return back()->withErrors(['draft' => 'A page revision is already under review or approved.']);
         }
 
         $page->createDraft();

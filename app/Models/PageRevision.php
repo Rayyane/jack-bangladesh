@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'og_image_path',
     'submitted_by',
     'approved_by',
+    'rejection_reason',
     'publish_at',
     'published_at',
 ])]
@@ -101,6 +102,8 @@ class PageRevision extends Model
         $this->update([
             'status' => self::STATUS_PENDING_REVIEW,
             'submitted_by' => $submitter->id,
+            'approved_by' => null,
+            'rejection_reason' => null,
         ]);
     }
 
@@ -118,9 +121,9 @@ class PageRevision extends Model
     /**
      * Reject back to draft (e.g. reviewer requests changes).
      */
-    public function reject()
+    public function reject(?string $reason = null)
     {
-        $this->update(['status' => self::STATUS_DRAFT]);
+        $this->update(['status' => self::STATUS_DRAFT, 'submitted_by' => null, 'approved_by' => null, 'rejection_reason' => $reason]);
     }
 
     /**

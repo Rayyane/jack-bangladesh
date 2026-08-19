@@ -47,6 +47,8 @@ class PageController extends Controller
                         'status' => $page->revisions->first()->status,
                     ]
                     : null,
+                'can_edit' => ! $page->revisions->first()
+                    || $page->revisions->first()->status === PageRevision::STATUS_DRAFT,
             ]),
         ]);
     }
@@ -70,6 +72,7 @@ class PageController extends Controller
             ->first();
  
         if (! $draft) {
+            abort_if($page->revisions()->whereNot('status', PageRevision::STATUS_PUBLISHED)->exists(), 403, 'This page revision is locked while it is under review.');
             $draft = $page->createDraft();
         }
  

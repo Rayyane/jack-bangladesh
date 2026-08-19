@@ -6,12 +6,19 @@ import { Button } from '@/components/ui/button';
 type QueueItem = {
     id: number;
     type: 'page' | 'product';
+    status: string;
     label: string;
     category?: string;
     submitted_by: string;
     submitted_at: string;
     waiting_for: string;
-    links: { approve: string; reject: string; view: string; history: string };
+    links: {
+        approve: string | null;
+        reject: string | null;
+        publish: string | null;
+        view: string;
+        history: string;
+    };
 };
 const props = defineProps<{
     queue: QueueItem[];
@@ -19,12 +26,17 @@ const props = defineProps<{
 }>();
 
 function approve(item: QueueItem) {
-    if (confirm(`Approve “${item.label}”?`)) {
+    if (item.links.approve && confirm(`Approve “${item.label}”?`)) {
         router.post(item.links.approve);
     }
 }
+function publish(item: QueueItem) {
+    if (item.links.publish && confirm(`Publish “${item.label}”?`)) {
+        router.post(item.links.publish);
+    }
+}
 function reject(item: QueueItem) {
-    if (!confirm(`Request changes to “${item.label}”?`)) {
+    if (!item.links.reject || !confirm(`Request changes to “${item.label}”?`)) {
         return;
     }
 
@@ -87,13 +99,22 @@ function reject(item: QueueItem) {
                             ><a :href="item.links.history"
                                 ><History class="size-4" /> History</a
                             ></Button
-                        ><Button size="sm" @click="approve(item)"
+                        ><Button
+                            v-if="item.status === 'pending_review'"
+                            size="sm"
+                            @click="approve(item)"
                             ><Check class="size-4" /> Approve</Button
                         ><Button
+                            v-if="item.status === 'pending_review'"
                             size="sm"
                             variant="destructive"
                             @click="reject(item)"
                             ><X class="size-4" /> Request changes</Button
+                        ><Button
+                            v-if="item.status === 'approved'"
+                            size="sm"
+                            @click="publish(item)"
+                            ><Check class="size-4" /> Publish</Button
                         >
                     </div>
                 </div>
