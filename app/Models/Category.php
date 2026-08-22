@@ -20,6 +20,7 @@ class Category extends Model
     use LogsActivity, SoftDeletes;
 
     public const CACHE_KEY = 'categories.tree';
+    public const FEATURED_CACHE_KEY = 'categories.featured.v2';
     public const CACHE_TTL = 60 * 60 * 24;
     public const NAV_PRODUCT_LIMIT = 10;
 
@@ -172,6 +173,11 @@ class Category extends Model
         Cache::forget(self::CACHE_KEY);
     }
 
+    public static function clearFeaturedCache(): void
+    {
+        Cache::forget(self::FEATURED_CACHE_KEY);
+    }
+
     /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
     protected static function buildTree(): array
     {
@@ -257,6 +263,7 @@ class Category extends Model
             }
 
             self::clearTreeCache();
+            self::clearFeaturedCache();
         });
 
         static::forceDeleting(function (Category $category): void {
@@ -268,10 +275,12 @@ class Category extends Model
 
         static::deleted(static function (): void {
             self::clearTreeCache();
+            self::clearFeaturedCache();
         });
 
         static::restored(static function (): void {
             self::clearTreeCache();
+            self::clearFeaturedCache();
         });
     }
 

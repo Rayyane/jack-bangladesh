@@ -9,6 +9,7 @@ use App\Models\ProductRevision;
 use App\Models\ProductSection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -33,18 +34,18 @@ class ProductController extends Controller
                 ->latest()
                 ->limit(1),
         ]);
- 
+
         // Filter by category if provided.
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
- 
+
         // Filter to only uncategorised products (no category assigned,
         // or category was deleted and category_id was manually nulled)..
         if ($request->boolean('uncategorised')) {
             $query->whereNull('category_id');
         }
- 
+
         // Filter by active revision status (draft, pending_review etc).
         if ($request->filled('status')) {
             $query->whereHas('revisions', fn ($q) => $q
@@ -52,40 +53,40 @@ class ProductController extends Controller
                 ->whereNot('status', ProductRevision::STATUS_PUBLISHED)
             );
         }
- 
+
         $products = $query->latest()->paginate(30)->withQueryString();
- 
+
         return Inertia::render('Cms/Products/Index', [
-            'products'   => $products->through(fn (Product $product) => [
-                'id'              => $product->id,
-                'slug'            => $product->slug,
-                'is_featured'     => $product->is_featured,
-                'is_published'    => $product->isPublished(),
+            'products' => $products->through(fn (Product $product) => [
+                'id' => $product->id,
+                'slug' => $product->slug,
+                'is_featured' => $product->is_featured,
+                'is_published' => $product->isPublished(),
                 'is_uncategorised' => $product->isUncategorised(),
-                'category'        => $product->category
+                'category' => $product->category
                     ? ['id' => $product->category->id, 'name' => $product->category->name]
                     : null,
-                'name'            => $product->publishedRevision?->name
+                'name' => $product->publishedRevision?->name
                     ?? $product->revisions->first()?->name
                     ?? '(Untitled)',
                 'active_revision' => $product->revisions->first()
                     ? [
-                        'id'     => $product->revisions->first()->id,
+                        'id' => $product->revisions->first()->id,
                         'status' => $product->revisions->first()->status,
                     ]
                     : null,
                 'can_edit' => ! $product->revisions->first()
                     || $product->revisions->first()->status === ProductRevision::STATUS_DRAFT,
             ]),
- 
+
             // Pass filter state back so Vue can populate filter controls.
             'filters' => $request->only(['category_id', 'uncategorised', 'status']),
- 
+
             // Flat category list for the filter dropdown.
             'categories' => Category::orderBy('name')->get(['id', 'name']),
         ]);
     }
- 
+
     /**
      * Show the create product form.
      */
@@ -95,7 +96,7 @@ class ProductController extends Controller
             'categories' => $this->categoryOptions(),
         ]);
     }
- 
+
     /**
      * Store a new product with its first draft revision.
      *
@@ -109,50 +110,50 @@ class ProductController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'category_id'              => ['nullable', 'exists:categories,id'],
-            'is_featured'              => ['boolean'],
-            'name'                     => ['required', 'string', 'max:255'],
-            'description'              => ['required', 'string'],
-            'price'                    => ['nullable', 'string', 'max:100'],
-            'meta_title'               => ['nullable', 'string', 'max:255'],
-            'meta_description'         => ['nullable', 'string', 'max:500'],
-            'video_url'                => ['nullable', 'url', 'max:2048'],
-            'primary_image'            => ['required', 'file', 'image', 'max:102400'],
-            'card_image'               => [Rule::requiredIf($request->boolean('is_featured')), 'nullable', 'file', 'image', 'max:5120'],
-            'spec_image'               => ['required', 'file', 'image', 'max:10240'],
- 
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'is_featured' => ['boolean'],
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string'],
+            'price' => ['nullable', 'string', 'max:100'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'video_url' => ['nullable', 'url', 'max:2048'],
+            'primary_image' => ['required', 'file', 'image', 'max:102400'],
+            'card_image' => [Rule::requiredIf($request->boolean('is_featured')), 'nullable', 'file', 'image', 'max:5120'],
+            'spec_image' => ['required', 'file', 'image', 'max:10240'],
+
             // Sections submitted on initial create.
-            'sections'                 => ['nullable', 'array'],
-            'sections.*.title'         => ['required', 'string', 'max:255'],
-            'sections.*.description'   => ['nullable', 'string'],
-            'sections.*.sort_order'    => ['integer', 'min:0'],
-            'section_images'           => ['nullable', 'array'],
-            'section_images.*'         => ['file', 'image', 'max:5120'],
+            'sections' => ['nullable', 'array'],
+            'sections.*.title' => ['required', 'string', 'max:255'],
+            'sections.*.description' => ['nullable', 'string'],
+            'sections.*.sort_order' => ['integer', 'min:0'],
+            'section_images' => ['nullable', 'array'],
+            'section_images.*' => ['file', 'image', 'max:5120'],
         ]);
- 
+
         $slug = $this->generateUniqueSlug($validated['name']);
- 
+
         DB::transaction(function () use ($request, $validated, $slug) {
             // 1. Create the product entity.
             $product = Product::create([
                 'category_id' => $validated['category_id'] ?? null,
                 'is_featured' => $validated['is_featured'] ?? false,
-                'slug'        => $slug,
+                'slug' => $slug,
             ]);
- 
+
             // 2. Record the initial slug.
             // SlugHistory::record($product, $slug);
             // not needed since booted method inside model handles it
- 
+
             // 3. Create the first draft revision.
             $revision = $product->revisions()->create([
-                'status'           => ProductRevision::STATUS_DRAFT,
-                'name'             => $validated['name'],
-                'description'      => $validated['description'],
-                'price'            => $validated['price'] ?? null,
-                'meta_title'       => $validated['meta_title'] ?? null,
+                'status' => ProductRevision::STATUS_DRAFT,
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'price' => $validated['price'] ?? null,
+                'meta_title' => $validated['meta_title'] ?? null,
                 'meta_description' => $validated['meta_description'] ?? null,
-                'video_url'        => $validated['video_url'] ?? null,
+                'video_url' => $validated['video_url'] ?? null,
                 'primary_image_path' => $request->file('primary_image')->store('products/primary', 'public'),
                 'card_image_path' => $request->hasFile('card_image')
                     ? $request->file('card_image')->store('products/cards', 'public')
@@ -168,14 +169,14 @@ class ProductController extends Controller
                 'size' => $specification->getSize(),
                 'alt_text' => $validated['name'].' specifications',
             ]);
- 
+
             // 4. Store any sections submitted on the create form.
             if (! empty($validated['sections'])) {
                 foreach ($validated['sections'] as $index => $section) {
                     $sectionData = [
-                        'title'       => $section['title'],
+                        'title' => $section['title'],
                         'description' => $section['description'] ?? null,
-                        'sort_order'  => $section['sort_order'] ?? $index,
+                        'sort_order' => $section['sort_order'] ?? $index,
                     ];
 
                     if ($request->hasFile("section_images.{$index}")) {
@@ -188,15 +189,15 @@ class ProductController extends Controller
                     $revision->sections()->create($sectionData);
                 }
             }
- 
+
             return $product;
         });
- 
+
         return redirect()
             ->route('cms.products.index')
             ->with('success', 'Product created as draft.');
     }
- 
+
     /**
      * Load the product editor for an existing product.
      *
@@ -217,7 +218,7 @@ class ProductController extends Controller
             ->exists()) {
             abort(403, 'This product revision is locked while it is under review.');
         }
- 
+
         if (! $draft) {
             DB::transaction(function () use ($product, &$draft) {
                 $draft = $product->createDraft();
@@ -225,48 +226,52 @@ class ProductController extends Controller
                 $product->copyMediaToDraft($draft);
             });
         }
- 
+
         $draft->load(['sections', 'gallery', 'specifications']);
- 
+
         return Inertia::render('Cms/Products/Edit', [
             'product' => [
-                'id'           => $product->id,
-                'slug'         => $product->slug,
-                'is_featured'  => $product->is_featured,
+                'id' => $product->id,
+                'slug' => $product->slug,
+                'is_featured' => $product->is_featured,
                 'is_published' => $product->isPublished(),
-                'category_id'  => $product->category_id,
+                'category_id' => $product->category_id,
             ],
             'revision' => [
-                'id'               => $draft->id,
-                'status'           => $draft->status,
-                'name'             => $draft->name,
-                'description'      => $draft->description,
-                'price'            => $draft->price,
-                'meta_title'       => $draft->meta_title,
+                'id' => $draft->id,
+                'status' => $draft->status,
+                'name' => $draft->name,
+                'description' => $draft->description,
+                'price' => $draft->price,
+                'meta_title' => $draft->meta_title,
                 'meta_description' => $draft->meta_description,
-                'video_url'        => $draft->video_url,
-                'primary_image_url' => $draft->primary_image_path ? Storage::url($draft->primary_image_path) : null,
-                'card_image_url' => $draft->card_image_path ? Storage::url($draft->card_image_path) : null,
-                'sections'         => $draft->sections->map(fn (ProductSection $s) => [
-                    'id'          => $s->id,
-                    'title'       => $s->title,
+                'video_url' => $draft->video_url,
+                'primary_image_url' => $draft->primary_image_path
+                    ? Media::publicUrl($draft->primary_image_path)
+                    : null,
+                'card_image_url' => $draft->card_image_path
+                    ? Media::publicUrl($draft->card_image_path)
+                    : null,
+                'sections' => $draft->sections->map(fn (ProductSection $s) => [
+                    'id' => $s->id,
+                    'title' => $s->title,
                     'description' => $s->description,
-                    'image_path'  => $s->image_path,
-                    'image_url'   => $s->image_path
-                        ? Storage::url($s->image_path)
+                    'image_path' => $s->image_path,
+                    'image_url' => $s->image_path
+                        ? Media::publicUrl($s->image_path)
                         : null,
-                    'image_alt'   => $s->image_alt,
-                    'sort_order'  => $s->sort_order,
+                    'image_alt' => $s->image_alt,
+                    'sort_order' => $s->sort_order,
                 ]),
-                'gallery'        => $draft->gallery->map(fn (Media $m) => [
-                    'id'       => $m->id,
-                    'url'      => $m->url,
+                'gallery' => $draft->gallery->map(fn (Media $m) => [
+                    'id' => $m->id,
+                    'url' => $m->url,
                     'alt_text' => $m->alt_text,
-                    'size'     => $m->human_size,
+                    'size' => $m->human_size,
                 ]),
                 'specifications' => $draft->specifications()->first()
                     ? [
-                        'id'  => $draft->specifications()->first()->id,
+                        'id' => $draft->specifications()->first()->id,
                         'url' => $draft->specifications()->first()->url,
                     ]
                     : null,
@@ -277,7 +282,7 @@ class ProductController extends Controller
             'categories' => $this->categoryOptions(),
         ]);
     }
- 
+
     /**
      * Save changes to an existing product draft.
      *
@@ -291,12 +296,12 @@ class ProductController extends Controller
     {
         abort_if($revision->product_id !== $product->id, 403);
         abort_if($revision->status !== ProductRevision::STATUS_DRAFT, 403, 'Only draft revisions can be edited.');
- 
+
         $validated = $request->validate([
             // Product-level
-            'category_id'  => ['nullable', 'exists:categories,id'],
-            'is_featured'  => ['boolean'],
- 
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'is_featured' => ['boolean'],
+
             // Revision content
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
@@ -306,7 +311,7 @@ class ProductController extends Controller
             'video_url' => ['nullable', 'url', 'max:2048'],
             'primary_image' => ['nullable', 'file', 'image', 'max:102400'],
             'card_image' => ['nullable', 'file', 'image', 'max:5120'],
- 
+
             // Sections — full replacement on each save.
             // The Vue form sends the complete current state of all sections.
             'sections' => ['nullable', 'array'],
@@ -319,18 +324,18 @@ class ProductController extends Controller
             'sections.*.title' => ['required', 'string', 'max:255'],
             'sections.*.description' => ['nullable', 'string'],
             'sections.*.sort_order' => ['integer', 'min:0'],
- 
+
             // Section image uploads (keyed by section index).
             'section_images' => ['nullable', 'array'],
             'section_images.*' => ['file', 'image', 'max:5120'],
- 
+
             // Gallery images (multiple).
             'gallery_images' => ['nullable', 'array'],
             'gallery_images.*' => ['file', 'image', 'max:5120'],
- 
+
             // Spec sheet image (single).
             'spec_image' => ['nullable', 'file', 'image', 'max:10240'],
- 
+
             // IDs of gallery images the editor wants to remove.
             'remove_gallery_ids' => ['nullable', 'array'],
             'remove_gallery_ids.*' => ['exists:media,id'],
@@ -347,16 +352,16 @@ class ProductController extends Controller
         if (! $revision->specifications()->exists() && ! $request->hasFile('spec_image')) {
             return back()->withErrors(['spec_image' => 'A specification sheet image is required.']);
         }
- 
+
         DB::transaction(function () use ($validated, $request, $product, $revision) {
- 
+
             // --- Product-level fields ---
- 
+
             $productData = [
                 'category_id' => $validated['category_id'] ?? null,
                 'is_featured' => $validated['is_featured'] ?? false,
             ];
- 
+
             // Regenerate slug if the name changed, and record the change.
             if ($product->revisions()->published()->latest()->first()?->name !== $validated['name']) {
                 $newSlug = $this->generateUniqueSlug($validated['name'], excludeId: $product->id);
@@ -366,18 +371,18 @@ class ProductController extends Controller
                     // SlugHistory is recorded automatically by Product::booted()
                 }
             }
- 
+
             $product->update($productData);
- 
+
             // --- Revision content fields ---
- 
+
             $revision->update([
-                'name'             => $validated['name'],
-                'description'      => $validated['description'] ?? null,
-                'price'            => $validated['price'] ?? null,
-                'meta_title'       => $validated['meta_title'] ?? null,
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'price' => $validated['price'] ?? null,
+                'meta_title' => $validated['meta_title'] ?? null,
                 'meta_description' => $validated['meta_description'] ?? null,
-                'video_url'        => $validated['video_url'] ?? null,
+                'video_url' => $validated['video_url'] ?? null,
             ]);
 
             foreach (['primary_image' => 'primary_image_path', 'card_image' => 'card_image_path'] as $upload => $column) {
@@ -394,56 +399,56 @@ class ProductController extends Controller
                     ]);
                 }
             }
- 
+
             // --- Sections ---
             // Sync the incoming sections against what's in the DB.
             // New sections (no id) are created; existing ones are updated;
             // sections missing from the payload are deleted.
- 
+
             $incomingSectionIds = collect($validated['sections'] ?? [])
                 ->pluck('id')
                 ->filter()
                 ->all();
- 
+
             // Delete sections not present in the incoming payload.
             $revision->sections()
                 ->whereNotIn('id', $incomingSectionIds)
                 ->delete();
- 
+
             foreach ($validated['sections'] ?? [] as $index => $sectionData) {
                 $section = isset($sectionData['id'])
                     ? ProductSection::find($sectionData['id'])
                     : null;
- 
+
                 $sectionPayload = [
-                    'title'       => $sectionData['title'],
+                    'title' => $sectionData['title'],
                     'description' => $sectionData['description'] ?? null,
-                    'sort_order'  => $sectionData['sort_order'] ?? $index,
+                    'sort_order' => $sectionData['sort_order'] ?? $index,
                 ];
- 
+
                 // Handle section image upload for this index.
                 if ($request->hasFile("section_images.{$index}")) {
                     $path = $request->file("section_images.{$index}")
                         ->store('products/sections', 'public');
- 
+
                     // Delete old image file if replacing.
                     if ($section?->image_path) {
                         Storage::disk('public')->delete($section->image_path);
                     }
- 
+
                     $sectionPayload['image_path'] = $path;
-                    $sectionPayload['image_alt']  = $sectionData['title'];
+                    $sectionPayload['image_alt'] = $sectionData['title'];
                 }
- 
+
                 if ($section) {
                     $section->update($sectionPayload);
                 } else {
                     $revision->sections()->create($sectionPayload);
                 }
             }
- 
+
             // --- Gallery images ---
- 
+
             // Remove any gallery images the editor deleted.
             if (! empty($validated['remove_gallery_ids'])) {
                 Media::whereIn('id', $validated['remove_gallery_ids'])
@@ -452,44 +457,44 @@ class ProductController extends Controller
                     ->get()
                     ->each->delete(); // triggers file deletion via Media::booted()
             }
- 
+
             // Upload new gallery images.
             foreach ($request->file('gallery_images', []) as $file) {
                 $path = $file->store('products/gallery', 'public');
- 
+
                 $revision->media()->create([
                     'collection' => Media::COLLECTION_GALLERY,
-                    'path'       => $path,
-                    'disk'       => 'public',
-                    'mime_type'  => $file->getMimeType(),
-                    'size'       => $file->getSize(),
-                    'alt_text'   => $validated['name'],
+                    'path' => $path,
+                    'disk' => 'public',
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'alt_text' => $validated['name'],
                 ]);
             }
- 
+
             // --- Spec sheet image ---
- 
+
             if ($request->hasFile('spec_image')) {
                 // Replace the existing spec image if one exists.
                 $revision->specifications()->get()->each->delete();
- 
+
                 $file = $request->file('spec_image');
                 $path = $file->store('products/specifications', 'public');
- 
+
                 $revision->media()->create([
                     'collection' => Media::COLLECTION_SPECIFICATIONS,
-                    'path'       => $path,
-                    'disk'       => 'public',
-                    'mime_type'  => $file->getMimeType(),
-                    'size'       => $file->getSize(),
-                    'alt_text'   => $validated['name'] . ' specifications',
+                    'path' => $path,
+                    'disk' => 'public',
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'alt_text' => $validated['name'].' specifications',
                 ]);
             }
         });
- 
+
         return back()->with('success', 'Draft saved.');
     }
- 
+
     /**
      * Soft-delete a product and all its revisions.
      * Media files are cleaned up via the Media model's deleted event.
@@ -502,49 +507,49 @@ class ProductController extends Controller
             foreach ($product->revisions as $revision) {
                 $revision->media()->get()->each->delete();
             }
- 
+
             $product->delete();
         });
- 
+
         return redirect()
             ->route('cms.products.index')
             ->with('success', 'Product deleted.');
     }
- 
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Generate a unique slug from a product name.
      * Appends a numeric suffix if the base slug already exists.
      */
     private function generateUniqueSlug(string $name, ?int $excludeId = null): string
     {
-        $base  = Str::slug($name);
-        $slug  = $base;
+        $base = Str::slug($name);
+        $slug = $base;
         $count = 1;
- 
+
         $query = Product::where('slug', $slug);
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
- 
+
         while ($query->clone()->exists()) {
-            $slug = $base . '-' . $count++;
+            $slug = $base.'-'.$count++;
             $query = Product::where('slug', $slug);
             if ($excludeId) {
                 $query->where('id', '!=', $excludeId);
             }
         }
- 
+
         return $slug;
     }
- 
+
     /**
      * Flat category list for the category picker dropdown.
      */
-    private function categoryOptions(): \Illuminate\Support\Collection
+    private function categoryOptions(): Collection
     {
         return Category::orderBy('name')->get(['id', 'name']);
     }

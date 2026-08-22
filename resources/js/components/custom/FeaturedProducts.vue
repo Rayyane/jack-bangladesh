@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps<{
     products?: {
         id: number;
         slug: string;
         name: string;
-        description: string;
-        image: string | null;
+        category: { name: string; slug: string } | null;
+        card_image: string | null;
         leaflet: string | null;
     }[];
 }>();
@@ -60,8 +61,8 @@ const products = computed(() =>
           ].map((product) => ({
               ...product,
               slug: '',
-              description: product.subText,
-              image: null,
+              category: null,
+              card_image: null,
               leaflet: null,
           })),
 );
@@ -94,7 +95,7 @@ const products = computed(() =>
                     class="pointer-events-none absolute -top-16 left-1/2 flex aspect-[600/550] w-5/6 max-w-[140px] -translate-x-1/2 items-center justify-center"
                 >
                     <img
-                        :src="product.image ?? '/E4S.png'"
+                        :src="product.card_image ?? '/E4S.png'"
                         :alt="product.name"
                         class="mx-auto h-full w-full object-contain transition-transform duration-300 group-hover:-translate-y-1"
                     />
@@ -109,7 +110,7 @@ const products = computed(() =>
                     <p
                         class="mt-1.5 line-clamp-2 min-h-[2.5rem] font-sans text-lg leading-relaxed text-muted-foreground"
                     >
-                        {{ product.description }}
+                        {{ product.category?.name ?? 'Uncategorised' }}
                     </p>
                 </div>
 
@@ -131,12 +132,12 @@ const products = computed(() =>
                         </a>
                     </div>
 
-                    <a
+                    <Link
                         :href="`/products/${product.slug}`"
                         class="block w-full rounded-md bg-jack-blue py-2 text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-jack-blue/90 hover:shadow"
                     >
                         See Details
-                    </a>
+                    </Link>
                 </div>
             </div>
         </div>

@@ -63,7 +63,32 @@ class Media extends Model
      */
     public function getUrlAttribute(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return self::publicUrl($this->path, $this->disk);
+    }
+
+    /**
+     * Return a public-disk URL using the URL of the request that rendered it.
+     *
+     * This avoids sending CMS and public pages back to the APP_URL host (or
+     * port) when the application is being accessed through a local vhost.
+     */
+    public static function publicUrl(string $path, string $disk = 'public'): string
+    {
+        $url = Storage::disk($disk)->url($path);
+
+        if ($disk !== 'public' || ! app()->bound('request')) {
+            return $url;
+        }
+
+        $urlPath = parse_url($url, PHP_URL_PATH) ?: $url;
+        $storagePosition = strpos($urlPath, '/storage/');
+
+        if ($storagePosition === false) {
+            return $url;
+        }
+
+        return rtrim(request()->getSchemeAndHttpHost().request()->getBaseUrl(), '/')
+            .substr($urlPath, $storagePosition);
     }
 
     /**

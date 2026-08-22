@@ -25,6 +25,8 @@ createInertiaApp({
                 return null;
             case name === 'Public/Page':
                 return null;
+            case name.startsWith('Public/Products/'):
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

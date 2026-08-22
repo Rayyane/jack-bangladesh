@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 #[Fillable(['slug', 'template_key', 'published_revision_id'])]
@@ -104,9 +106,42 @@ class Page extends Model
             ])
             : [];
 
-        return $this->revisions()->create(array_merge($seed, $attributes, [
+        $draft = $this->revisions()->create(array_merge($seed, $attributes, [
             'status' => PageRevision::STATUS_DRAFT,
         ]));
+
+        // Each revision owns its files. Copying media here keeps a draft fully
+        // independent from the live revision: replacing or deleting a draft
+        // image can never remove the image currently shown on the public site.
+        if ($this->publishedRevision) {
+            $this->publishedRevision->gallery()->get()->each(
+                function (Media $media) use ($draft): void {
+                    $extension = pathinfo($media->path, PATHINFO_EXTENSION);
+                    $path = sprintf(
+                        'pages/%d/revisions/%d/%s%s',
+                        $this->id,
+                        $draft->id,
+                        Str::uuid(),
+                        $extension ? '.'.$extension : '',
+                    );
+
+                    Storage::disk($media->disk)->copy($media->path, $path);
+
+                    $draft->media()->create([
+                        'collection' => $media->collection,
+                        'path' => $path,
+                        'disk' => $media->disk,
+                        'mime_type' => $media->mime_type,
+                        'size' => $media->size,
+                        'alt_text' => $media->alt_text,
+                        'is_primary' => $media->is_primary,
+                        'sort_order' => $media->sort_order,
+                    ]);
+                },
+            );
+        }
+
+        return $draft;
     }
 
     protected static function booted(): void

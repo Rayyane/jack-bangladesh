@@ -58,7 +58,9 @@ class PageRevisionController extends Controller
 
         $revision->submitForReview($this->authenticatedUser());
 
-        return back()->with('success', 'Revision submitted for review.');
+        return redirect()
+            ->route('cms.pages.revisions.index', $page)
+            ->with('success', 'Revision submitted for review.');
     }
 
     /**

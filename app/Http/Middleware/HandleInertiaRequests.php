@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                 'roles' => fn (): array => $request->user()?->getRoleNames()->values()->all() ?? [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // The public navbar is present on every public page, so share the
+            // already-cached navigation tree instead of rebuilding it per page.
+            'category_tree' => fn (): array => Category::getTree(),
         ];
     }
 }

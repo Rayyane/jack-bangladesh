@@ -30,17 +30,25 @@ class PublicPageController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
  
-        // If nothing is published yet, treat it as not found.
-        abort_if(! $page->isPublished(), 404);
+        // The homepage shell is always public. Its hero reads only the page's
+        // published revision, but featured categories/products have their own
+        // publication lifecycle and must not be hidden by the page workflow.
+        // Other public pages still require a published revision.
+        abort_if($page->template_key !== 'home' && ! $page->isPublished(), 404);
  
         $revision = $page->publishedRevision;
  
         // Base data every page type receives.
         $pageData = [
             'template_key'     => $page->template_key,
-            'content'          => $revision->content,
-            'meta_title'       => $revision->meta_title,
-            'meta_description' => $revision->meta_description,
+            'content'          => $revision?->content,
+            'gallery'          => $revision?->gallery->map(fn ($media) => [
+                'id' => $media->id,
+                'url' => $media->url,
+                'alt_text' => $media->alt_text,
+            ])->values(),
+            'meta_title'       => $revision?->meta_title,
+            'meta_description' => $revision?->meta_description,
         ];
  
         // Load template-specific extra data.
@@ -64,12 +72,12 @@ class PublicPageController extends Controller
      * - Featured categories: pulled from cache (same cache the megamenu uses,
      *   filtered to is_featured = true).
      * - Featured products: published products marked is_featured, with their
-     *   published revision's name and primary gallery image.
+     *   published revision's name and dedicated card image.
      */
     private function homepageData(): array
     {
         $featuredCategories = Cache::remember(
-            'categories.featured.v2',
+            Category::FEATURED_CACHE_KEY,
             60 * 60 * 24,
             fn () => Category::where('is_featured', true)
                 ->orderBy('sort_order')
@@ -84,6 +92,7 @@ class PublicPageController extends Controller
         );
  
         $featuredProducts = Product::with([
+                'category:id,name,slug',
                 'publishedRevision',
                 'publishedRevision.gallery' => fn ($q) => $q->where('is_primary', true)->limit(1),
             ])
@@ -94,8 +103,13 @@ class PublicPageController extends Controller
                 'id'    => $product->id,
                 'slug'  => $product->slug,
                 'name'  => $product->publishedRevision->name,
-                'description' => $product->publishedRevision->description,
-                'image' => $product->publishedRevision->card_image_path
+                'category' => $product->category
+                    ? [
+                        'name' => $product->category->name,
+                        'slug' => $product->category->slug,
+                    ]
+                    : null,
+                'card_image' => $product->publishedRevision->card_image_path
                     ? Storage::url($product->publishedRevision->card_image_path)
                     : ($product->publishedRevision->primary_image_path
                         ? Storage::url($product->publishedRevision->primary_image_path)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 type Revision = {
     id: number;
@@ -16,6 +16,7 @@ const props = defineProps<{
     revisions: Revision[];
     can_create_draft: boolean;
 }>();
+const canModerate = usePage().props.auth.roles.includes('super_admin');
 function action(
     revision: Revision,
     name: 'submit' | 'approve' | 'reject' | 'publish',
@@ -108,18 +109,18 @@ function newDraft() {
                             @click="action(revision, 'submit')"
                             >Submit</Button
                         ><Button
-                            v-if="revision.status === 'pending_review'"
+                            v-if="canModerate && revision.status === 'pending_review'"
                             size="sm"
                             @click="action(revision, 'approve')"
                             >Approve</Button
                         ><Button
-                            v-if="revision.status === 'pending_review'"
+                            v-if="canModerate && revision.status === 'pending_review'"
                             size="sm"
                             variant="outline"
                             @click="action(revision, 'reject')"
                             >Request changes</Button
                         ><Button
-                            v-if="revision.status === 'approved'"
+                            v-if="canModerate && revision.status === 'approved'"
                             size="sm"
                             @click="action(revision, 'publish')"
                             >Publish</Button

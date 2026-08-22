@@ -1,15 +1,23 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 
 defineOptions({
   name: 'NavDropdownItem'
 });
 
+interface NavProduct {
+  name: string;
+  slug: string;
+}
+
 interface NavItem {
   id: number;
   name: string;
-  isProduct?: boolean;
-  children?: NavItem[];
+  slug: string;
+  children: NavItem[];
+  products: NavProduct[];
+  has_more: boolean;
 }
 
 defineProps<{
@@ -18,42 +26,32 @@ defineProps<{
 </script>
 
 <template>
-  <div v-if="item.isProduct">
-    <a 
-      href="#" 
-      class="block px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted font-roboto transition-colors duration-150"
-    >
+  <div v-if="item.children.length" class="relative group/sub">
+    <Link :href="`/products?category=${encodeURIComponent(item.slug)}`" class="flex w-full items-center justify-between px-4 py-2.5 text-sm text-foreground transition-colors duration-150 hover:bg-muted hover:text-jack-blue">
       {{ item.name }}
-    </a>
+      <ChevronRight class="size-4 text-muted-foreground transition-transform duration-300 group-hover/sub:rotate-90 group-hover/sub:text-jack-blue" />
+    </Link>
+
+    <div class="absolute top-0 left-[98%] hidden min-w-56 animate-in fade-in slide-in-from-left-2 duration-200 group-hover/sub:block rounded-md border border-border bg-card py-2 shadow-xl">
+      <NavDropdownItem v-for="subChild in item.children" :key="subChild.id" :item="subChild" />
+    </div>
   </div>
 
-  <div v-else class="relative group/sub">
-    <button class="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-jack-blue cursor-pointer transition-colors duration-150">
+  <div v-else-if="item.products.length" class="relative">
+    <Link :href="`/products?category=${encodeURIComponent(item.slug)}`" class="block px-4 py-2.5 text-sm text-foreground transition-colors duration-150 hover:bg-muted hover:text-jack-blue">
       {{ item.name }}
-      
-      <!-- <svg 
-        v-if="item.children && item.children.length > 0"
-        class="w-3 h-3 text-muted-foreground group-hover/sub:text-jack-blue transition-transform duration-300 transform group-hover/sub:rotate-90" 
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-      </svg> -->
+    </Link>
+    <Link v-for="product in item.products" :key="product.slug" :href="`/products/${product.slug}`" class="block px-4 py-2.5 text-xs text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground">
+      {{ product.name }}
+    </Link>
+    <Link v-if="item.has_more" :href="`/products?category=${encodeURIComponent(item.slug)}`" class="block px-4 py-2.5 text-xs font-semibold text-jack-blue transition-colors duration-150 hover:bg-muted">
+      Show More
+    </Link>
+  </div>
 
-      <ChevronRight 
-        v-if="item.children && item.children.length > 0"
-        class="size-4 text-muted-foreground group-hover/sub:text-jack-blue transition-transform duration-300 transform group-hover/sub:rotate-90"
-      />
-    </button>
-
-    <div 
-      v-if="item.children && item.children.length > 0"
-      class="absolute left-[98%] top-0 hidden group-hover/sub:block min-w-56 bg-card border border-border rounded-md shadow-xl py-2 animate-in fade-in slide-in-from-left-2 duration-200"
-    >
-      <NavDropdownItem 
-        v-for="subChild in item.children" 
-        :key="subChild.id" 
-        :item="subChild" 
-      />
-    </div>
+  <div v-else>
+    <Link :href="`/products?category=${encodeURIComponent(item.slug)}`" class="block px-4 py-2.5 text-sm text-foreground transition-colors duration-150 hover:bg-muted hover:text-jack-blue">
+      {{ item.name }}
+    </Link>
   </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps<{
     categories?: {
@@ -45,9 +46,10 @@ const categories = computed(() =>
         <div
             class="grid grid-cols-2 justify-center gap-x-4 gap-y-16 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
         >
-            <div
+            <Link
                 v-for="category in categories"
                 :key="category.id"
+                :href="`/products?category=${encodeURIComponent(category.slug)}`"
                 class="group relative my-5 rounded-xl border border-border bg-card px-4 pt-20 pb-5 text-center shadow-sm transition-all duration-300 hover:border-jack-blue/30 hover:shadow-md"
             >
                 <div
@@ -71,7 +73,7 @@ const categories = computed(() =>
                         {{ category.name }}
                     </h3>
                 </div>
-            </div>
+            </Link>
         </div>
     </section>
 </template>

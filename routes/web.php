@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductRevisionController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\PublicProductController;
+use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\ReviewQueueController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => app(PublicPageController::class)->show('home'))->name('home');
 Route::get('/about', fn () => app(PublicPageController::class)->show('about'))->name('about');
 Route::get('/contact', fn () => app(PublicPageController::class)->show('contact'))->name('contact');
+Route::get('/search', [PublicSearchController::class, 'index'])->name('search');
+Route::get('/search/suggestions', [PublicSearchController::class, 'suggestions'])->name('search.suggestions');
 
 // Product catalog and individual product pages.
 Route::get('/products', [PublicProductController::class, 'index'])->name('products.index');

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import Home from '@/pages/Home.vue';
+import AboutUs from '@/pages/AboutUs.vue';
+import Contact from '@/pages/Contact.vue';
 
 defineProps<{
     template_key: string;
     content: Record<string, unknown> | null;
+    gallery?: { id: number; url: string; alt_text: string | null }[];
     featured_categories?: {
         id: number;
         name: string;
@@ -14,8 +17,8 @@ defineProps<{
         id: number;
         slug: string;
         name: string;
-        description: string;
-        image: string | null;
+        category: { name: string; slug: string } | null;
+        card_image: string | null;
         leaflet: string | null;
     }[];
 }>();
@@ -25,9 +28,15 @@ defineProps<{
     <Home
         v-if="template_key === 'home'"
         :content="content"
-        :featured-categories="featured_categories"
-        :featured-products="featured_products"
+        :featured_categories="featured_categories"
+        :featured_products="featured_products"
     />
+    <AboutUs
+        v-else-if="template_key === 'about'"
+        :content="content"
+        :gallery="gallery"
+    />
+    <Contact v-else-if="template_key === 'contact'" :content="content" />
     <main v-else class="mx-auto min-h-screen max-w-5xl px-4 py-16">
         <h1 class="text-3xl font-semibold">
             {{ content?.title ?? template_key }}

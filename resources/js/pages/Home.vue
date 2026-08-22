@@ -18,8 +18,8 @@ defineProps<{
         id: number;
         slug: string;
         name: string;
-        description: string;
-        image: string | null;
+        category: { name: string; slug: string } | null;
+        card_image: string | null;
         leaflet: string | null;
     }[];
 }>();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 
@@ -16,6 +16,7 @@ type Revision = {
     content: Record<string, any> | null;
     meta_title: string | null;
     meta_description: string | null;
+    gallery: { id: number; url: string; alt_text: string | null }[];
 };
 const props = defineProps<{
     page: PageData;
@@ -30,7 +31,9 @@ const form = useForm({
     content: { ...(props.revision.content ?? {}) },
     meta_title: props.revision.meta_title ?? '',
     meta_description: props.revision.meta_description ?? '',
+    about_images: {} as Record<string, File>,
 });
+const imagePreviews = ref<Record<string, string>>({});
 const isDraft = computed(() => props.revision.status === 'draft');
 const fields = computed(() =>
     props.page.template_key === 'home'
@@ -71,14 +74,144 @@ const fields = computed(() =>
                   },
               ]),
           ]
-        : [
-              { key: 'title', label: 'Page title', placeholder: 'Page title' },
-              {
-                  key: 'description',
-                  label: 'Page description',
-                  placeholder: 'Page introduction',
-              },
-          ],
+        : props.page.template_key === 'about'
+          ? [
+                {
+                    key: 'hero.eyebrow',
+                    label: 'Hero eyebrow',
+                    placeholder: 'Who We Are',
+                },
+                {
+                    key: 'hero.title',
+                    label: 'Hero title',
+                    placeholder: 'Page headline',
+                },
+                {
+                    key: 'hero.description',
+                    label: 'Hero description',
+                    placeholder: 'Page introduction',
+                },
+                ...Array.from({ length: 4 }, (_, index) => [
+                    {
+                        key: `stats.${index}.value`,
+                        label: `Statistic ${index + 1} value`,
+                        placeholder: '100+',
+                    },
+                    {
+                        key: `stats.${index}.label`,
+                        label: `Statistic ${index + 1} label`,
+                        placeholder: 'Statistic label',
+                    },
+                ]).flat(),
+                ...Array.from({ length: 3 }, (_, index) => [
+                    {
+                        key: `pillars.${index}.title`,
+                        label: `Pillar ${index + 1} title`,
+                        placeholder: 'Pillar title',
+                    },
+                    {
+                        key: `pillars.${index}.description`,
+                        label: `Pillar ${index + 1} description`,
+                        placeholder: 'Pillar description',
+                    },
+                ]).flat(),
+                {
+                    key: 'cta.title',
+                    label: 'CTA title',
+                    placeholder: 'Call to action headline',
+                },
+                {
+                    key: 'cta.description',
+                    label: 'CTA description',
+                    placeholder: 'Call to action description',
+                },
+                {
+                    key: 'cta.label',
+                    label: 'CTA button label',
+                    placeholder: 'Explore products',
+                },
+                {
+                    key: 'cta.url',
+                    label: 'CTA button URL',
+                    placeholder: '/products',
+                },
+            ]
+          : props.page.template_key === 'contact'
+            ? [
+                  {
+                      key: 'hero.eyebrow',
+                      label: 'Hero eyebrow',
+                      placeholder: 'Contact Jack Bangladesh',
+                  },
+                  {
+                      key: 'hero.title',
+                      label: 'Hero title',
+                      placeholder: 'Page headline',
+                  },
+                  {
+                      key: 'hero.description',
+                      label: 'Hero description',
+                      placeholder: 'Page introduction',
+                  },
+                  {
+                      key: 'contact.phone',
+                      label: 'Phone number',
+                      placeholder: '+880 1700-000000',
+                  },
+                  {
+                      key: 'contact.phone_note',
+                      label: 'Phone support note',
+                      placeholder: 'Speak with our sales and support team',
+                  },
+                  {
+                      key: 'contact.email',
+                      label: 'Email address',
+                      placeholder: 'info@jackbangladesh.com',
+                  },
+                  {
+                      key: 'contact.email_note',
+                      label: 'Email support note',
+                      placeholder: 'For product, service and dealer enquiries',
+                  },
+                  {
+                      key: 'contact.hours',
+                      label: 'Operating hours',
+                      placeholder: 'Sunday – Thursday, 9 AM – 6 PM',
+                  },
+                  {
+                      key: 'contact.hours_note',
+                      label: 'Hours note',
+                      placeholder: 'Please arrange a visit with our team first',
+                  },
+                  {
+                      key: 'location.name',
+                      label: 'Office name',
+                      placeholder: 'Jack Bangladesh',
+                  },
+                  {
+                      key: 'location.address',
+                      label: 'Office description',
+                      placeholder:
+                          'Office address or helpful location description',
+                  },
+                  {
+                      key: 'location.map_url',
+                      label: 'Google Maps URL',
+                      placeholder: 'https://maps.app.goo.gl/...',
+                  },
+              ]
+            : [
+                  {
+                      key: 'title',
+                      label: 'Page title',
+                      placeholder: 'Page title',
+                  },
+                  {
+                      key: 'description',
+                      label: 'Page description',
+                      placeholder: 'Page introduction',
+                  },
+              ],
 );
 function get(key: string) {
     return key.split('.').reduce((value, part) => value?.[part], form.content);
@@ -96,6 +229,24 @@ function set(key: string, value: string) {
         target = target[part];
     });
     target[parts.at(-1)!] = value;
+}
+function imagePreview(slot: string): string | undefined {
+    return (
+        imagePreviews.value[slot] ??
+        props.revision.gallery.find(
+            (image) => image.alt_text === 'about-' + slot,
+        )?.url
+    );
+}
+function selectImage(slot: string, event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+
+    if (!file) {
+        return;
+    }
+
+    form.about_images[slot] = file;
+    imagePreviews.value[slot] = URL.createObjectURL(file);
 }
 function save() {
     form.post(`/cms/pages/${props.page.id}/revisions/${props.revision.id}`, {
@@ -162,6 +313,69 @@ function submitForReview() {
                             )
                         "
                     />
+                </div>
+            </section>
+            <section
+                v-if="page.template_key === 'about'"
+                class="space-y-5 rounded-lg border bg-card p-5"
+            >
+                <div>
+                    <h2 class="text-base font-semibold">About page images</h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Uploading a replacement affects this draft only. The
+                        current live image remains unchanged until publishing.
+                    </p>
+                </div>
+                <div class="grid gap-5">
+                    <div
+                        v-for="image in [
+                            {
+                                slot: 'hero',
+                                label: 'Hero machine image',
+                                hint: 'Displayed in the blue hero panel.',
+                            },
+                        ]"
+                        :key="image.slot"
+                        class="space-y-3"
+                    >
+                        <div
+                            class="aspect-video overflow-hidden rounded-lg border bg-muted"
+                        >
+                            <img
+                                v-if="imagePreview(image.slot)"
+                                :src="imagePreview(image.slot)"
+                                :alt="image.label"
+                                class="size-full object-cover"
+                            />
+                            <div
+                                v-else
+                                class="grid size-full place-items-center px-4 text-center text-sm text-muted-foreground"
+                            >
+                                No image uploaded yet
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                :for="'about-image-' + image.slot"
+                                class="text-sm font-medium"
+                                >{{ image.label }}</label
+                            >
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                {{ image.hint }} JPG, PNG, or WebP up to 5 MB.
+                            </p>
+                            <input
+                                :id="'about-image-' + image.slot"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="mt-3 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-jack-blue file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-jack-blue/90"
+                                @change="selectImage(image.slot, $event)"
+                            />
+                            <InputError
+                                :message="form.errors['about_images.hero']"
+                                class="mt-2"
+                            />
+                        </div>
+                    </div>
                 </div>
             </section>
             <section

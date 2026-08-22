@@ -41,7 +41,8 @@ class ReviewQueueController extends Controller
                     'approve' => $rev->status === PageRevision::STATUS_PENDING_REVIEW ? route('cms.pages.revisions.approve', [$rev->page_id, $rev->id]) : null,
                     'reject'  => $rev->status === PageRevision::STATUS_PENDING_REVIEW ? route('cms.pages.revisions.reject', [$rev->page_id, $rev->id]) : null,
                     'publish' => $rev->status === PageRevision::STATUS_APPROVED ? route('cms.pages.revisions.publish', [$rev->page_id, $rev->id]) : null,
-                    'view'    => route('cms.pages.edit', $rev->page_id),
+                    // Pending revisions are locked; inspect them in history.
+                    'view'    => route('cms.pages.revisions.index', $rev->page_id),
                     'history' => route('cms.pages.revisions.index', $rev->page_id),
                 ],
             ]);

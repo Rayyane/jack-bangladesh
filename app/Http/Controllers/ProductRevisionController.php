@@ -116,7 +116,9 @@ class ProductRevisionController extends Controller
 
         $revision->submitForReview($this->authenticatedUser());
 
-        return back()->with('success', 'Revision submitted for review.');
+        return redirect()
+            ->route('cms.products.revisions.index', $product)
+            ->with('success', 'Revision submitted for review.');
     }
 
     /**
