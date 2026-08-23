@@ -135,6 +135,10 @@ class PageController extends Controller
             'meta_description' => ['nullable', 'string', 'max:500'],
             'about_images' => ['nullable', 'array'],
             'about_images.hero' => ['nullable', 'file', 'image', 'max:5120'],
+            'home_images' => ['nullable', 'array'],
+            'home_images.primary' => ['nullable', 'file', 'image', 'max:5120'],
+            'home_images.secondary' => ['nullable', 'file', 'image', 'max:5120'],
+            'home_images.tertiary' => ['nullable', 'file', 'image', 'max:5120'],
         ]);
 
         DB::transaction(function () use ($request, $revision, $validated): void {
@@ -144,34 +148,39 @@ class PageController extends Controller
                 'meta_description',
             ])->all());
 
-            foreach (['hero'] as $slot) {
-                if (! $request->hasFile("about_images.{$slot}")) {
-                    continue;
+            foreach ([
+                'about_images' => ['hero'],
+                'home_images' => ['primary', 'secondary', 'tertiary'],
+            ] as $field => $slots) {
+                foreach ($slots as $slot) {
+                    if (! $request->hasFile("{$field}.{$slot}")) {
+                        continue;
+                    }
+
+                    // The image belongs only to this draft revision. Deleting it
+                    // is safe because Page::createDraft copied any live media.
+                    $revision->gallery()
+                        ->where('alt_text', str_replace('_images', '', $field)."-{$slot}")
+                        ->get()
+                        ->each
+                        ->delete();
+
+                    $file = $request->file("{$field}.{$slot}");
+                    $path = $file->store(
+                        "pages/{$revision->page_id}/revisions/{$revision->id}",
+                        'public',
+                    );
+
+                    $revision->media()->create([
+                        'collection' => Media::COLLECTION_GALLERY,
+                        'path' => $path,
+                        'disk' => 'public',
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                        'alt_text' => str_replace('_images', '', $field)."-{$slot}",
+                        'sort_order' => 0,
+                    ]);
                 }
-
-                // The image belongs only to this draft revision. Deleting it
-                // is safe because Page::createDraft copied any live media.
-                $revision->gallery()
-                    ->where('alt_text', "about-{$slot}")
-                    ->get()
-                    ->each
-                    ->delete();
-
-                $file = $request->file("about_images.{$slot}");
-                $path = $file->store(
-                    "pages/{$revision->page_id}/revisions/{$revision->id}",
-                    'public',
-                );
-
-                $revision->media()->create([
-                    'collection' => Media::COLLECTION_GALLERY,
-                    'path' => $path,
-                    'disk' => 'public',
-                    'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize(),
-                    'alt_text' => "about-{$slot}",
-                    'sort_order' => 0,
-                ]);
             }
         });
 

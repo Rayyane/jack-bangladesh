@@ -32,6 +32,7 @@ const form = useForm({
     meta_title: props.revision.meta_title ?? '',
     meta_description: props.revision.meta_description ?? '',
     about_images: {} as Record<string, File>,
+    home_images: {} as Record<string, File>,
 });
 const imagePreviews = ref<Record<string, string>>({});
 const isDraft = computed(() => props.revision.status === 'draft');
@@ -66,11 +67,6 @@ const fields = computed(() =>
                       key: `hero.${banner}.cta_url`,
                       label: `${banner} banner button URL`,
                       placeholder: '/products',
-                  },
-                  {
-                      key: `hero.${banner}.image_url`,
-                      label: `${banner} banner image URL`,
-                      placeholder: `/hero-${banner === 'primary' ? '1' : banner === 'secondary' ? '2' : '3'}.png`,
                   },
               ]),
           ]
@@ -230,23 +226,26 @@ function set(key: string, value: string) {
     });
     target[parts.at(-1)!] = value;
 }
-function imagePreview(slot: string): string | undefined {
+function imagePreview(type: 'about' | 'home', slot: string): string | undefined {
     return (
-        imagePreviews.value[slot] ??
+        imagePreviews.value[`${type}-${slot}`] ??
         props.revision.gallery.find(
-            (image) => image.alt_text === 'about-' + slot,
-        )?.url
+            (image) => image.alt_text === `${type}-${slot}`,
+        )?.url ??
+        (type === 'home'
+            ? getString(`hero.${slot}.image_url`)
+            : undefined)
     );
 }
-function selectImage(slot: string, event: Event) {
+function selectImage(type: 'about' | 'home', slot: string, event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
 
     if (!file) {
         return;
     }
 
-    form.about_images[slot] = file;
-    imagePreviews.value[slot] = URL.createObjectURL(file);
+    form[`${type}_images`][slot] = file;
+    imagePreviews.value[`${type}-${slot}`] = URL.createObjectURL(file);
 }
 function save() {
     form.post(`/cms/pages/${props.page.id}/revisions/${props.revision.id}`, {
@@ -342,8 +341,8 @@ function submitForReview() {
                             class="aspect-video overflow-hidden rounded-lg border bg-muted"
                         >
                             <img
-                                v-if="imagePreview(image.slot)"
-                                :src="imagePreview(image.slot)"
+                                v-if="imagePreview('about', image.slot)"
+                                :src="imagePreview('about', image.slot)"
                                 :alt="image.label"
                                 class="size-full object-cover"
                             />
@@ -368,12 +367,61 @@ function submitForReview() {
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"
                                 class="mt-3 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-jack-blue file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-jack-blue/90"
-                                @change="selectImage(image.slot, $event)"
+                                @change="selectImage('about', image.slot, $event)"
                             />
                             <InputError
                                 :message="form.errors['about_images.hero']"
                                 class="mt-2"
                             />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section
+                v-if="page.template_key === 'home'"
+                class="space-y-5 rounded-lg border bg-card p-5"
+            >
+                <div>
+                    <h2 class="text-base font-semibold">Homepage hero images</h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Uploading a replacement affects this draft only. The current live image remains unchanged until publishing.
+                    </p>
+                </div>
+                <div class="grid gap-5 md:grid-cols-3">
+                    <div
+                        v-for="image in [
+                            { slot: 'primary', label: 'Primary banner image', hint: 'Large hero banner.' },
+                            { slot: 'secondary', label: 'Secondary banner image', hint: 'Top-right hero banner.' },
+                            { slot: 'tertiary', label: 'Tertiary banner image', hint: 'Bottom-right hero banner.' },
+                        ]"
+                        :key="image.slot"
+                        class="space-y-3"
+                    >
+                        <div class="aspect-video overflow-hidden rounded-lg border bg-muted">
+                            <img
+                                v-if="imagePreview('home', image.slot)"
+                                :src="imagePreview('home', image.slot)"
+                                :alt="image.label"
+                                class="size-full object-cover"
+                            />
+                            <div
+                                v-else
+                                class="grid size-full place-items-center px-4 text-center text-sm text-muted-foreground"
+                            >
+                                No image uploaded yet
+                            </div>
+                        </div>
+                        <div>
+                            <label :for="'home-image-' + image.slot" class="text-sm font-medium">{{ image.label }}</label>
+                            <p class="mt-1 text-xs text-muted-foreground">{{ image.hint }} JPG, PNG, or WebP up to 5 MB.</p>
+                            <input
+                                :id="'home-image-' + image.slot"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="mt-3 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-jack-blue file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-jack-blue/90"
+                                @change="selectImage('home', image.slot, $event)"
+                            />
+                            <InputError :message="form.errors[`home_images.${image.slot}`]" class="mt-2" />
                         </div>
                     </div>
                 </div>

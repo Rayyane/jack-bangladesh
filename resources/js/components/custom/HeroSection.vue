@@ -3,7 +3,11 @@
 import { computed } from 'vue';
 
 type Content = Record<string, any>;
-const props = defineProps<{ content?: Content | null }>();
+type GalleryImage = { id: number; url: string; alt_text: string | null };
+const props = defineProps<{
+    content?: Content | null;
+    gallery?: GalleryImage[];
+}>();
 const value = (paths: string[], fallback: string): string => {
     const found = paths
         .map((path) =>
@@ -19,15 +23,20 @@ const banner = (
     prefix: string,
     defaults: Record<string, string>,
     legacy: string[] = [],
-) => ({
-    image: value(
+) => {
+    const slot = prefix.replace('hero.', '');
+
+    return {
+    image:
+        props.gallery?.find((image) => image.alt_text === `home-${slot}`)?.url ??
+        value(
         [
             `${prefix}.image_url`,
             `${prefix}.image`,
             ...legacy.map((key) => `hero.${key}`),
         ],
         defaults.image,
-    ),
+        ),
     eyebrow: value([`${prefix}.eyebrow`, `${prefix}.label`], defaults.eyebrow),
     title: value([`${prefix}.title`, `${prefix}.headline`], defaults.title),
     description: value(
@@ -36,7 +45,8 @@ const banner = (
     ),
     cta: value([`${prefix}.cta_label`, `${prefix}.button`], defaults.cta),
     href: value([`${prefix}.cta_url`, `${prefix}.button_url`], defaults.href),
-});
+};
+};
 const hero = computed(() => ({
     primary: banner(
         'hero.primary',

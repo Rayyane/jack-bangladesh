@@ -28,6 +28,7 @@ defineProps<{
     <Home
         v-if="template_key === 'home'"
         :content="content"
+        :gallery="gallery"
         :featured_categories="featured_categories"
         :featured_products="featured_products"
     />

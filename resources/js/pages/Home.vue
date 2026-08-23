@@ -6,8 +6,10 @@ import HeroSection from '@/components/custom/HeroSection.vue';
 import Navbar from '@/components/custom/Navbar.vue';
 
 type Content = Record<string, unknown>;
+type GalleryImage = { id: number; url: string; alt_text: string | null };
 defineProps<{
     content?: Content | null;
+    gallery?: GalleryImage[];
     featured_categories?: {
         id: number;
         name: string;
@@ -27,7 +29,7 @@ defineProps<{
 
 <template>
     <Navbar />
-    <HeroSection :content="content" />
+    <HeroSection :content="content" :gallery="gallery" />
     <FeaturedCategories :categories="featured_categories" />
     <FeaturedProducts :products="featured_products" />
     <Footer />
