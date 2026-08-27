@@ -107,7 +107,7 @@ function clearSearch() {
         <header class="relative z-50 bg-jack-blue text-white shadow-md">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between gap-4">
-                    <div class="flex flex-shrink-0 items-center gap-2">
+                    <div class="flex flex-shrink-0 items-center gap-1.5">
                         <button
                             @click="isMobileMenuOpen = !isMobileMenuOpen"
                             class="inline-flex cursor-pointer rounded-md p-2 transition-colors hover:bg-white/10 md:hidden"
@@ -139,12 +139,12 @@ function clearSearch() {
                             <img
                                 src="/jacklogo.png"
                                 alt="Jack Logo"
-                                class="h-9 w-auto object-contain brightness-0 invert"
+                                class="h-7 w-auto object-contain brightness-0 invert sm:h-8"
                             />
                         </a>
                     </div>
 
-                    <div class="mx-auto hidden max-w-md flex-1 md:flex">
+                    <div class="mx-auto hidden min-w-0 max-w-sm flex-1 md:flex">
                         <form
                             class="relative w-full"
                             @submit.prevent="submitSearch"
@@ -244,7 +244,7 @@ function clearSearch() {
                     </div>
 
                     <div
-                        class="flex items-center space-x-1 font-roboto sm:space-x-4"
+                        class="flex shrink-0 items-center gap-1 font-roboto lg:gap-2"
                     >
                         <button
                             @click="isMobileSearchOpen = !isMobileSearchOpen"
@@ -274,7 +274,7 @@ function clearSearch() {
                   clip-rule="evenodd" />
               </svg> -->
                             <MapPinHouse class="size-4" />
-                            <span class="hidden sm:inline">About Us</span>
+                            <span class="hidden lg:inline">About Us</span>
                         </a>
 
                         <a
@@ -286,7 +286,7 @@ function clearSearch() {
                   d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
               </svg> -->
                             <MessageSquareText class="size-4" />
-                            <span class="hidden sm:inline">Contact Us</span>
+                            <span class="hidden lg:inline">Contact Us</span>
                         </a>
 
                         <a

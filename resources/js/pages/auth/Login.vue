@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
@@ -97,10 +97,10 @@ defineProps<{
             </Button>
 
             <Button
-                :href="home()"
-                class="-mt-1.25 w-full bg-white border border-jack-blue text-jack-blue font-roboto hover:bg-jack-blue hover:text-white"
+                as-child
+                class="-mt-1.25 w-full border border-jack-blue bg-white font-roboto text-jack-blue hover:bg-jack-blue hover:text-white"
             >
-            Cancel
+                <Link :href="home()">Cancel</Link>
             </Button>
         </div>
 
