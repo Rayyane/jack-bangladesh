@@ -27,7 +27,7 @@ class CategoryController extends Controller
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
- 
+
         return Inertia::render('Cms/Categories/Index', [
             'categories' => $this->managementTree($categories),
         ]);
@@ -49,7 +49,13 @@ class CategoryController extends Controller
         $isFeatured = $request->boolean('is_featured');
 
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255', 'unique:categories'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')
+                    ->whereNull('parent_id'),
+            ],
             'parent_id'  => ['nullable', 'exists:categories,id'],
             'sort_order' => ['integer', 'min:0'],
             'image'      => [Rule::requiredIf($isFeatured), 'nullable', 'image', 'max:5120'],
@@ -58,18 +64,18 @@ class CategoryController extends Controller
         ], [
             'image.required' => 'A featured category must have an image.',
         ]);
- 
+
         // Auto-generate slug from name. The Category model's booted()
         // method will compute the correct materialized_path on saving.
         $validated['slug'] = Str::slug($validated['name']);
- 
+
         // Ensure slug uniqueness — append a suffix if it collides.
         $originalSlug = $validated['slug'];
         $count = 1;
         while (Category::where('slug', $validated['slug'])->exists()) {
             $validated['slug'] = $originalSlug . '-' . $count++;
         }
- 
+
         $validated['image_path'] = isset($validated['image'])
             ? $validated['image']->store('categories', 'public')
             : null;
@@ -83,10 +89,10 @@ class CategoryController extends Controller
             ?? $this->nextSortOrder($validated['parent_id']);
 
         Category::create($validated);
- 
+
         // Tree cache is invalidated automatically by the Category model's
         // saved event — no manual cache clear needed here.
- 
+
         return redirect()
             ->route('cms.categories.index')
             ->with('success', 'Category created.');
@@ -122,16 +128,23 @@ class CategoryController extends Controller
         $isFeatured = $request->boolean('is_featured');
 
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'parent_id'   => ['nullable', 'exists:categories,id'],
-            'sort_order'  => ['integer', 'min:0'],
-            'image'       => [Rule::requiredIf($isFeatured && ! $category->image_path), 'nullable', 'image', 'max:5120'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')
+                    ->whereNull('parent_id')
+                    ->ignore($category->id),
+            ],
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'sort_order' => ['integer', 'min:0'],
+            'image' => [Rule::requiredIf($isFeatured && ! $category->image_path), 'nullable', 'image', 'max:5120'],
             'is_featured' => ['boolean'],
             'show_in_nav' => ['boolean'],
         ], [
             'image.required' => 'A featured category must have an image.',
         ]);
- 
+
         // Prevent circular reparenting — a category cannot be made a
         // descendant of itself.
         if (! is_null($validated['parent_id'])) {
@@ -142,7 +155,7 @@ class CategoryController extends Controller
                 ]);
             }
         }
- 
+
         // Only regenerate the slug if the name has changed.
         if ($category->name !== $validated['name']) {
             $newSlug = Str::slug($validated['name']);
@@ -153,7 +166,7 @@ class CategoryController extends Controller
             }
             $validated['slug'] = $newSlug;
         }
- 
+
         $oldImagePath = $category->image_path;
 
         if (isset($validated['image'])) {
@@ -174,7 +187,7 @@ class CategoryController extends Controller
         if (isset($validated['image_path']) && $oldImagePath) {
             Storage::disk('public')->delete($oldImagePath);
         }
- 
+
         return redirect()
             ->route('cms.categories.index')
             ->with('success', 'Category updated.');
@@ -196,7 +209,7 @@ class CategoryController extends Controller
                 'category' => 'This category has subcategories. Reassign or delete them first.',
             ]);
         }
- 
+
         $imagePath = $category->image_path;
 
         DB::transaction(function () use ($category) {
@@ -211,7 +224,7 @@ class CategoryController extends Controller
         if ($imagePath) {
             Storage::disk('public')->delete($imagePath);
         }
- 
+
         return redirect()
             ->route('cms.categories.index')
             ->with('success', 'Category deleted.');
@@ -244,7 +257,7 @@ class CategoryController extends Controller
             'categories.*.id'        => ['required', 'exists:categories,id'],
             'categories.*.sort_order' => ['required', 'integer', 'min:0'],
         ]);
- 
+
         $rootIds = collect($validated['categories'])->pluck('id');
         $rootCount = Category::query()
             ->whereNull('parent_id')
@@ -263,17 +276,17 @@ class CategoryController extends Controller
                 Category::whereKey($id)->update(['sort_order' => $sortOrder]);
             });
         });
- 
+
         // Clear the tree cache once after all updates, not once per row.
         Category::clearTreeCache();
- 
+
         return back()->with('success', 'Order saved.');
     }
 
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
- 
+
     /**
      * Returns a flat, indented list of all categories for use in
      * <select> dropdowns / parent pickers in the Vue forms.
@@ -287,13 +300,13 @@ class CategoryController extends Controller
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
- 
+
         $flat = [];
         $this->flattenTree($roots, $flat, 0, $exclude);
- 
+
         return $flat;
     }
- 
+
     private function flattenTree(
         \Illuminate\Database\Eloquent\Collection $categories,
         array &$flat,
@@ -309,18 +322,18 @@ class CategoryController extends Controller
             )) {
                 continue;
             }
- 
+
             $flat[] = [
                 'id'    => $category->id,
                 'name'  => $category->name,
                 'depth' => $depth,
                 'label' => str_repeat('— ', $depth) . $category->name,
             ];
- 
+
             $this->flattenTree($category->recursiveChildren, $flat, $depth + 1, $exclude);
         }
     }
- 
+
     /**
      * Guard against circular reparenting.
      * Returns true if making $newParent the parent of $category
@@ -330,7 +343,7 @@ class CategoryController extends Controller
     {
         // If the new parent's path contains this category's ID, it's a descendant.
         $path = $newParent->materialized_path ?? '';
- 
+
         return $newParent->id === $category->id
             || str_contains($path, '/' . $category->id . '/')
             || str_starts_with($path, $category->id . '/')
@@ -353,7 +366,7 @@ class CategoryController extends Controller
      */
     private function managementTree(\Illuminate\Database\Eloquent\Collection $categories): array
     {
-        return $categories->map(fn (Category $category): array => [
+        return $categories->map(fn(Category $category): array => [
             'id' => $category->id,
             'name' => $category->name,
             'image_path' => $category->image_path,

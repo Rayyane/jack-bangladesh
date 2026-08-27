@@ -4,7 +4,14 @@ import { FolderSearch, Search } from '@lucide/vue';
 import Footer from '@/components/custom/FooterSection.vue';
 import Navbar from '@/components/custom/Navbar.vue';
 
-type Category = { id: number; name: string; slug: string };
+type Category = { 
+    id: number; 
+    name: string; 
+    slug: string;
+    path: string;
+    full_label: string; 
+};
+
 type Product = {
     id: number;
     slug: string;
@@ -59,7 +66,17 @@ defineProps<{
                             "
                             class="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold transition hover:border-jack-blue/40 hover:text-jack-blue"
                         >
-                            {{ category.name }}
+                            <div>
+                                <p class="font-semibold">{{ category.name }}</p>
+                                <!-- Breadcrumb trail — only shown when the category
+                                     has ancestors, i.e. is not a root category. -->
+                                <p
+                                    v-if="category.path"
+                                    class="mt-0.5 text-xs text-muted-foreground"
+                                >
+                                    {{ category.path }} › {{ category.name }}
+                                </p>
+                            </div>
                             <span class="text-muted-foreground"
                                 >View category →</span
                             >
