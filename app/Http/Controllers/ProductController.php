@@ -93,7 +93,7 @@ class ProductController extends Controller
     public function create(): Response
     {
         return Inertia::render('Cms/Products/Create', [
-            'categories' => $this->categoryOptions(),
+            'categories' => $this->flatCategoryList(),
         ]);
     }
 
@@ -279,7 +279,7 @@ class ProductController extends Controller
             'published_revision' => $product->publishedRevision
                 ? ['name' => $product->publishedRevision->name]
                 : null,
-            'categories' => $this->categoryOptions(),
+            'categories' => $this->flatCategoryList(),
         ]);
     }
 
@@ -546,11 +546,34 @@ class ProductController extends Controller
         return $slug;
     }
 
-    /**
-     * Flat category list for the category picker dropdown.
-     */
-    private function categoryOptions(): Collection
+
+    private function flatCategoryList(): array
     {
-        return Category::orderBy('name')->get(['id', 'name']);
+        $roots = Category::with('recursiveChildren')
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->get();
+
+        $flat = [];
+        $this->flattenTree($roots, $flat, 0);
+
+        return $flat;
+    }
+
+    private function flattenTree(
+        \Illuminate\Database\Eloquent\Collection $categories,
+        array &$flat,
+        int $depth
+    ): void {
+        foreach ($categories as $category) {
+            $flat[] = [
+                'id'    => $category->id,
+                'name'  => $category->name,
+                'depth' => $depth,
+                'label' => str_repeat('— ', $depth) . $category->name,
+            ];
+
+            $this->flattenTree($category->recursiveChildren, $flat, $depth + 1);
+        }
     }
 }

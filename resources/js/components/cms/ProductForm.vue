@@ -5,7 +5,7 @@ import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 
-type Category = { id: number; name: string };
+type Category = { id: number; name: string; label: string; depth: number };
 type Section = {
     id?: number;
     title: string;
@@ -206,7 +206,7 @@ function submit() {
                             :key="category.id"
                             :value="category.id"
                         >
-                            {{ category.name }}
+                            {{ category.label }}
                         </option></select
                     ><InputError :message="form.errors.category_id" />
                 </div>
