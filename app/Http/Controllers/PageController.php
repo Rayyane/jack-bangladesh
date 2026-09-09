@@ -134,7 +134,13 @@ class PageController extends Controller
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
             'about_images' => ['nullable', 'array'],
-            'about_images.hero' => ['nullable', 'file', 'image', 'max:5120'],
+            'about_images.*' => ['nullable', 'file', 'image', 'max:5120'],
+            'team_members' => ['nullable', 'array'],
+            'team_members.*.name' => ['nullable', 'string', 'max:255'],
+            'team_members.*.designation' => ['nullable', 'string', 'max:255'],
+            'team_members.*.phone' => ['nullable', 'string', 'max:100'],
+            'team_members.*.email' => ['nullable', 'email', 'max:255'],
+            'team_members.*.image_slot' => ['required_with:team_members', 'string', 'max:100'],
             'home_images' => ['nullable', 'array'],
             'home_images.primary' => ['nullable', 'file', 'image', 'max:5120'],
             'home_images.secondary' => ['nullable', 'file', 'image', 'max:5120'],
@@ -142,14 +148,22 @@ class PageController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $revision, $validated): void {
-            $revision->update(collect($validated)->only([
+            $revisionData = collect($validated)->only([
                 'content',
                 'meta_title',
                 'meta_description',
-            ])->all());
+            ])->all();
+
+            if ($revision->page->template_key === 'about' && array_key_exists('team_members', $validated)) {
+                $content = $revisionData['content'] ?? $revision->content ?? [];
+                $content['team']['members'] = array_values($validated['team_members'] ?? []);
+                $revisionData['content'] = $content;
+            }
+
+            $revision->update($revisionData);
 
             foreach ([
-                'about_images' => ['hero'],
+                'about_images' => array_keys($request->file('about_images', [])),
                 'home_images' => ['primary', 'secondary', 'tertiary'],
             ] as $field => $slots) {
                 foreach ($slots as $slot) {

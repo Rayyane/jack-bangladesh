@@ -47,8 +47,6 @@ interface NavCategory {
     name: string;
     slug: string;
     children: NavCategory[];
-    products: NavProduct[];
-    has_more: boolean;
 }
 
 const page = usePage<{ category_tree?: NavCategory[] }>();
@@ -132,11 +130,7 @@ function clearSearch() {
                                 placeholder="Search products or categories..."
                                 class="w-full rounded-lg border border-white/20 bg-white/10 py-2 pr-10 pl-4 font-sans text-sm text-white placeholder-white/70 transition-all duration-200 focus:bg-white focus:text-foreground focus:placeholder-muted-foreground focus:outline-none" />
                             <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                <!-- <svg class="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                  stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg> -->
+                                
                                 <Search class="size-6" />
                             </span>
 
@@ -186,11 +180,7 @@ function clearSearch() {
                         <button @click="isMobileSearchOpen = !isMobileSearchOpen"
                             class="cursor-pointer rounded-full p-2 transition-colors hover:bg-white/10 md:hidden"
                             aria-label="Toggle Search">
-                            <!-- <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path v-if="!isMobileSearchOpen" stroke-linecap="round" stroke-linejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                <path v-else stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg> -->
+                            
                             <div v-if="!isMobileSearchOpen">
                                 <Search class="size-5" />
                             </div>
@@ -201,40 +191,35 @@ function clearSearch() {
 
                         <a href="/about"
                             class="items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/10 md:flex">
-                            <!-- <svg class="w-4 h-4 text-orange-300 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd"
-                  d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1014 0c0-1.307-.349-2.518-1-3.523a11.398 11.398 0 00-3.35-3.882zm-3.86 10.13a.75.75 0 001.05-.143 2.5 2.5 0 014.076.544.75.75 0 001.332-.691 4 4 0 00-6.53-1.096.75.75 0 00.073 1.385z"
-                  clip-rule="evenodd" />
-              </svg> -->
+                            
                             <MapPinHouse class="size-4" />
                             <span class="hidden lg:inline">About Us</span>
                         </a>
 
                         <a href="/contact"
                             class="items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/10 md:flex">
-                            <!-- <svg class="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-              </svg> -->
+                            
                             <MessageSquareText class="size-4" />
                             <span class="hidden lg:inline">Contact Us</span>
                         </a>
 
-                        <a href="#"
-                            class="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/10">
-                            <!-- <svg class="w-4 h-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 01-3-3h7a3 3 0 013 3v1" />
-              </svg> -->
-                            
-                            <!-- <span>Login</span> -->
-                            <Link v-if="$page.props.auth.user" :href="dashboard()">
+                        <div
+                            class="rounded-lg text-sm font-medium transition-colors duration-150 hover:bg-white/10"
+                        >
+                            <Link
+                                v-if="$page.props.auth.user"
+                                :href="dashboard()"
+                                class="flex items-center gap-1.5 px-2.5 py-2"
+                            >
                                 <LogIn class="size-4" />
                                 <span class="hidden lg:inline">Dashboard</span>
                             </Link>
 
                             <template v-else>
-                                <Link :href="login()">
+                                <Link
+                                    :href="login()"
+                                    class="flex items-center gap-1.5 px-2.5 py-2"
+                                >
                                     <LogIn class="size-4" />
                                     <span class="hidden lg:inline">Login</span>
                                 </Link>
@@ -245,7 +230,7 @@ function clearSearch() {
                                     Register
                                 </Link> -->
                             </template>
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,34 +306,16 @@ function clearSearch() {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
               </svg> -->
 
-                            <ChevronDown v-if="
-                                category.children.length > 0 ||
-                                category.products.length > 0
-                            "
+                            <ChevronDown v-if="category.children.length > 0"
                                 class="size-4 transform text-muted-foreground transition-transform duration-300 group-hover:rotate-180 group-hover:text-jack-blue" />
 
                             <span
                                 class="absolute bottom-0 left-0 h-[2px] w-0 bg-jack-blue transition-all duration-300 ease-out group-hover:w-full"></span>
                         </Link>
 
-                        <div v-if="
-                            category.children.length > 0 ||
-                            category.products.length > 0
-                        "
+                        <div v-if="category.children.length > 0"
                             class="absolute top-full left-1/2 hidden min-w-56 -translate-x-1/2 animate-in rounded-md border border-border bg-card py-2 shadow-xl duration-200 fade-in slide-in-from-top-2 group-hover:block">
                             <NavDropdownItem v-for="child in category.children" :key="child.id" :item="child" />
-                            <template v-if="category.products.length">
-                                <Link v-for="product in category.products" :key="product.slug"
-                                    :href="`/products/${product.slug}`"
-                                    class="block px-4 py-2.5 font-roboto text-xs text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground">
-                                    {{ product.name }}
-                                </Link>
-                                <Link v-if="category.has_more"
-                                    :href="`/products?category=${encodeURIComponent(category.slug)}`"
-                                    class="block px-4 py-2.5 text-xs font-semibold text-jack-blue transition-colors duration-150 hover:bg-muted">
-                                    Show More
-                                </Link>
-                            </template>
                         </div>
                     </li>
                 </ul>
@@ -365,22 +332,8 @@ function clearSearch() {
                             class="text-md hover:text-jack-blue">{{ category.name }}</Link>
                     </div>
 
-                    <div v-if="
-                        category.children.length || category.products.length
-                    " class="space-y-1.5 pb-2 pl-4">
+                    <div v-if="category.children.length" class="space-y-1.5 pb-2 pl-4">
                         <MobileNavDropdownItem v-for="child in category.children" :key="child.id" :item="child" />
-                        <template v-if="category.products.length">
-                            <Link v-for="product in category.products" :key="product.slug"
-                                :href="`/products/${product.slug}`"
-                                class="block py-1 font-roboto text-xs text-muted-foreground hover:text-jack-blue">
-                                {{ product.name }}
-                            </Link>
-                            <Link v-if="category.has_more"
-                                :href="`/products?category=${encodeURIComponent(category.slug)}`"
-                                class="block py-1 text-xs font-semibold text-jack-blue">
-                                Show More
-                            </Link>
-                        </template>
                     </div>
                 </div>
             </div>

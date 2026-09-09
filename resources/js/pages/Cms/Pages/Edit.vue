@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { Plus, Trash2 } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 
@@ -33,6 +34,15 @@ const form = useForm({
     meta_description: props.revision.meta_description ?? '',
     about_images: {} as Record<string, File>,
     home_images: {} as Record<string, File>,
+    team_members: Array.isArray(props.revision.content?.team?.members)
+        ? props.revision.content.team.members.map((member: Record<string, unknown>, index: number) => ({
+              name: typeof member.name === 'string' ? member.name : '',
+              designation: typeof member.designation === 'string' ? member.designation : '',
+              phone: typeof member.phone === 'string' ? member.phone : '',
+              email: typeof member.email === 'string' ? member.email : '',
+              image_slot: typeof member.image_slot === 'string' ? member.image_slot : `team-${index + 1}`,
+          }))
+        : [],
 });
 const imagePreviews = ref<Record<string, string>>({});
 const isDraft = computed(() => props.revision.status === 'draft');
@@ -99,18 +109,21 @@ const fields = computed(() =>
                         placeholder: 'Statistic label',
                     },
                 ]).flat(),
-                ...Array.from({ length: 3 }, (_, index) => [
-                    {
-                        key: `pillars.${index}.title`,
-                        label: `Pillar ${index + 1} title`,
-                        placeholder: 'Pillar title',
-                    },
-                    {
-                        key: `pillars.${index}.description`,
-                        label: `Pillar ${index + 1} description`,
-                        placeholder: 'Pillar description',
-                    },
-                ]).flat(),
+                { key: 'who.eyebrow', label: 'Who we are eyebrow', placeholder: 'Who we are' },
+                { key: 'who.title', label: 'Who we are title', placeholder: 'Section headline' },
+                { key: 'who.description_first', label: 'Who we are first paragraph', placeholder: 'First paragraph' },
+                { key: 'who.description_second', label: 'Who we are second paragraph', placeholder: 'Second paragraph' },
+                ...Array.from({ length: 3 }, (_, index) => ({
+                    key: `who.bullets.${index}`,
+                    label: `Who we are bullet ${index + 1}`,
+                    placeholder: 'Bullet point',
+                })),
+                ...['chairman', 'md'].flatMap((leader) => [
+                    { key: `leadership.${leader}.title`, label: `${leader} message title`, placeholder: `${leader} message` },
+                    { key: `leadership.${leader}.body`, label: `${leader} message`, placeholder: 'Message text' },
+                    { key: `leadership.${leader}.name`, label: `${leader} name`, placeholder: 'Full name' },
+                    { key: `leadership.${leader}.designation`, label: `${leader} designation`, placeholder: 'Designation' },
+                ]),
                 {
                     key: 'cta.title',
                     label: 'CTA title',
@@ -247,6 +260,15 @@ function selectImage(type: 'about' | 'home', slot: string, event: Event) {
     form[`${type}_images`][slot] = file;
     imagePreviews.value[`${type}-${slot}`] = URL.createObjectURL(file);
 }
+function addTeamMember() {
+    form.team_members.push({
+        name: '', designation: '', phone: '', email: '', image_slot: `team-${Date.now()}`,
+    });
+}
+function removeTeamMember(index: number) {
+    const [member] = form.team_members.splice(index, 1);
+    if (member?.image_slot) delete form.about_images[member.image_slot];
+}
 function save() {
     form.post(`/cms/pages/${props.page.id}/revisions/${props.revision.id}`, {
         forceFormData: true,
@@ -287,7 +309,7 @@ function submitForReview() {
                         field.label
                     }}</label
                     ><textarea
-                        v-if="field.key.endsWith('description')"
+                        v-if="field.key.endsWith('description') || field.key.endsWith('body') || field.key.includes('paragraph')"
                         :id="field.key"
                         :value="getString(field.key)"
                         :placeholder="field.placeholder"
@@ -328,11 +350,9 @@ function submitForReview() {
                 <div class="grid gap-5">
                     <div
                         v-for="image in [
-                            {
-                                slot: 'hero',
-                                label: 'Hero machine image',
-                                hint: 'Displayed in the blue hero panel.',
-                            },
+                            { slot: 'hero', label: 'Hero machine image', hint: 'Displayed in the blue hero panel.' },
+                            { slot: 'chairman', label: 'Chairman portrait', hint: 'Displayed beside the Chairman message.' },
+                            { slot: 'md', label: 'Managing Director portrait', hint: 'Displayed beside the MD message.' },
                         ]"
                         :key="image.slot"
                         class="space-y-3"
@@ -370,12 +390,62 @@ function submitForReview() {
                                 @change="selectImage('about', image.slot, $event)"
                             />
                             <InputError
-                                :message="form.errors['about_images.hero']"
+                                :message="form.errors[`about_images.${image.slot}`]"
                                 class="mt-2"
                             />
                         </div>
                     </div>
                 </div>
+            </section>
+            <section
+                v-if="page.template_key === 'about'"
+                class="space-y-5 rounded-lg border bg-card p-5"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-semibold">Our team</h2>
+                        <p class="mt-1 text-sm text-muted-foreground">Add, edit, or remove team cards. Each image is saved with this draft.</p>
+                    </div>
+                    <Button type="button" variant="outline" @click="addTeamMember"><Plus class="size-4" /> Add team member</Button>
+                </div>
+                <div v-if="form.team_members.length" class="space-y-5">
+                    <div v-for="(member, index) in form.team_members" :key="member.image_slot" class="rounded-lg border p-4">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h3 class="font-medium">Team member {{ index + 1 }}</h3>
+                            <Button type="button" size="icon" variant="ghost" @click="removeTeamMember(index)"><Trash2 class="size-4 text-destructive" /></Button>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="space-y-2">
+                                <label :for="`team-${index}-name`" class="text-sm font-medium">Name</label>
+                                <input :id="`team-${index}-name`" v-model="member.name" class="w-full rounded-md border bg-background px-3 py-2" />
+                            </div>
+                            <div class="space-y-2">
+                                <label :for="`team-${index}-designation`" class="text-sm font-medium">Designation</label>
+                                <input :id="`team-${index}-designation`" v-model="member.designation" class="w-full rounded-md border bg-background px-3 py-2" />
+                            </div>
+                            <div class="space-y-2">
+                                <label :for="`team-${index}-phone`" class="text-sm font-medium">Phone number</label>
+                                <input :id="`team-${index}-phone`" v-model="member.phone" class="w-full rounded-md border bg-background px-3 py-2" />
+                            </div>
+                            <div class="space-y-2">
+                                <label :for="`team-${index}-email`" class="text-sm font-medium">Email address</label>
+                                <input :id="`team-${index}-email`" v-model="member.email" type="email" class="w-full rounded-md border bg-background px-3 py-2" />
+                            </div>
+                        </div>
+                        <div class="mt-4 grid gap-3 md:grid-cols-[12rem_1fr] md:items-center">
+                            <div class="aspect-square overflow-hidden rounded-lg border bg-muted">
+                                <img v-if="imagePreview('about', member.image_slot)" :src="imagePreview('about', member.image_slot)" :alt="member.name || 'Team member'" class="size-full object-cover" />
+                                <div v-else class="grid size-full place-items-center text-center text-xs text-muted-foreground">No image uploaded</div>
+                            </div>
+                            <div>
+                                <label :for="`team-image-${index}`" class="text-sm font-medium">Portrait image</label>
+                                <input :id="`team-image-${index}`" type="file" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full cursor-pointer rounded-md border border-input bg-background text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:border-0 file:bg-jack-blue file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-jack-blue/90" @change="selectImage('about', member.image_slot, $event)" />
+                                <InputError :message="form.errors[`about_images.${member.image_slot}`]" class="mt-2" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p v-else class="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">No team members yet. Add one to show a team card on the About page.</p>
             </section>
             <section
                 v-if="page.template_key === 'home'"

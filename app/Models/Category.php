@@ -75,18 +75,10 @@ class Category extends Model
             ->with('recursiveChildrenWithProductCount');
     }
 
-    /**
-     * Recursive tree tailored for the public navigation. It additionally
-     * eager-loads the limited product list needed by leaf dropdowns.
-     *
-     * @return HasMany<Category, $this>
-     */
+    /** @return HasMany<Category, $this> */
     public function recursiveNavChildren(): HasMany
     {
-        return $this->children()->with([
-            'recursiveNavChildren',
-            'leafProducts.publishedRevision:id,product_id,name',
-        ]);
+        return $this->children()->with('recursiveNavChildren');
     }
 
     /** @return HasMany<Product, $this> */
@@ -162,7 +154,7 @@ class Category extends Model
         });
     }
 
-    /** @return array<int, array{id: int, name: string, slug: string, children: array, products: array, has_more: bool, product_count_label: ?string}> */
+    /** @return array<int, array{id: int, name: string, slug: string, children: array}> */
     public static function getTree(): array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, static fn (): array => self::buildTree());
@@ -183,7 +175,6 @@ class Category extends Model
     {
         $roots = static::with([
             'recursiveNavChildren',
-            'leafProducts.publishedRevision:id,product_id,name',
         ])
             ->whereNull('parent_id')
             ->orderBy('sort_order')
@@ -193,7 +184,7 @@ class Category extends Model
     }
 
     /** @param Collection<int, Category> $categories
-     *  @return array<int, array{id: int, name: string, slug: string, children: array, products: array, has_more: bool, product_count_label: ?string}> */
+     *  @return array<int, array{id: int, name: string, slug: string, children: array}> */
     protected static function toTreeArray(Collection $categories): array
     {
         return $categories
@@ -203,38 +194,11 @@ class Category extends Model
             ->map(static function (Category $category): array {
                 $visibleChildren = $category->recursiveNavChildren
                     ->filter(static fn (Category $child): bool => static::isVisibleInNav($child));
-                $isLeaf = $visibleChildren->isEmpty();
-                $products = [];
-                $hasMore = false;
-                $productCountLabel = null;
-
-                if ($isLeaf) {
-                    $fetchedProducts = $category->leafProducts;
-                    $hasMore = $fetchedProducts->count() > self::NAV_PRODUCT_LIMIT;
-
-                    $products = $fetchedProducts
-                        ->take(self::NAV_PRODUCT_LIMIT)
-                        ->map(static fn (Product $product): array => [
-                            'name' => $product->publishedRevision?->name,
-                            'slug' => $product->slug,
-                        ])
-                        ->filter(static fn (array $product): bool => $product['name'] !== null)
-                        ->values()
-                        ->all();
-
-                    $productCountLabel = $hasMore
-                        ? self::NAV_PRODUCT_LIMIT.'+'
-                        : (string) count($products);
-                }
-
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'children' => static::toTreeArray($visibleChildren),
-                    'products' => $products,
-                    'has_more' => $hasMore,
-                    'product_count_label' => $productCountLabel,
                 ];
             })
             ->values()

@@ -58,7 +58,7 @@ const dynamicFeatures = [
                 <div class="space-y-6 lg:col-span-5">
                     <div class="space-y-2">
                         <span
-                            class="font-roboto text-xs font-bold tracking-widest text-jack-blue uppercase"
+                            class="font-roboto text-md font-bold tracking-widest text-jack-blue"
                             >High-Speed Overlock</span
                         >
                         <h1

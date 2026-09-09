@@ -530,14 +530,14 @@ class ProductController extends Controller
         $slug = $base;
         $count = 1;
 
-        $query = Product::where('slug', $slug);
+        $query = Product::withTrashed()->where('slug', $slug);
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
 
         while ($query->clone()->exists()) {
             $slug = $base.'-'.$count++;
-            $query = Product::where('slug', $slug);
+            $query = Product::withTrashed()->where('slug', $slug);
             if ($excludeId) {
                 $query->where('id', '!=', $excludeId);
             }

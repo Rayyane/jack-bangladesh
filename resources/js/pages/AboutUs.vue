@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Check,
-    Factory,
-    Headphones,
-    Settings2,
-    Sparkles,
-} from '@lucide/vue';
+import { ArrowRight, Check, Mail, Phone, Sparkles } from '@lucide/vue';
 import { computed } from 'vue';
 import Footer from '@/components/custom/FooterSection.vue';
 import Navbar from '@/components/custom/Navbar.vue';
@@ -18,10 +11,12 @@ const props = defineProps<{
     content?: Content | null;
     gallery?: GalleryImage[];
 }>();
-const text = (key: string, fallback: string): string => {
-    const value = key
+const contentValue = (key: string): unknown =>
+    key
         .split('.')
         .reduce((current, part) => current?.[part], props.content);
+const text = (key: string, fallback: string): string => {
+    const value = contentValue(key);
     return typeof value === 'string' && value !== '' ? value : fallback;
 };
 
@@ -31,24 +26,42 @@ const defaultStats = [
     { value: '100%', label: 'Focused on industrial sewing' },
     { value: '∞', label: 'Possibilities to create' },
 ];
-const defaultPillars = [
+const defaultLeadershipMessages = [
     {
-        title: 'Machines that keep pace',
-        description:
-            'From everyday lockstitch to specialized automation, we help factories choose equipment that matches the fabric, operation and output they need.',
-        icon: Factory,
+        key: 'chairman',
+        title: "Chairman's Message",
+        body: 'A message from our Chairman will be shared here.',
+        name: "Chairman's Name",
+        designation: 'Chairman',
+        imageLabel: 'Chairman portrait',
     },
     {
-        title: 'Confidence after installation',
-        description:
-            'Our relationship continues beyond delivery, with practical setup guidance and support designed to keep your sewing floor moving.',
-        icon: Headphones,
+        key: 'md',
+        title: "MD's Message",
+        body: 'A message from our Managing Director will be shared here.',
+        name: "Managing Director's Name",
+        designation: 'Managing Director',
+        imageLabel: 'Managing Director portrait',
+    },
+];
+const defaultTeamMembers = [
+    {
+        name: 'Team Member Name',
+        designation: 'Sales Manager',
+        phone: '+880 1700-000000',
+        email: 'sales@jackbangladesh.com',
     },
     {
-        title: 'A smarter way to sew',
-        description:
-            'We bring together efficient technology and production know-how so teams can work with greater consistency, control and confidence.',
-        icon: Settings2,
+        name: 'Team Member Name',
+        designation: 'Service Manager',
+        phone: '+880 1700-000000',
+        email: 'service@jackbangladesh.com',
+    },
+    {
+        name: 'Team Member Name',
+        designation: 'Customer Support',
+        phone: '+880 1700-000000',
+        email: 'support@jackbangladesh.com',
     },
 ];
 const stats = computed(() =>
@@ -57,16 +70,50 @@ const stats = computed(() =>
         label: text(`stats.${index}.label`, stat.label),
     })),
 );
-const pillars = computed(() =>
-    defaultPillars.map((pillar, index) => ({
-        ...pillar,
-        title: text(`pillars.${index}.title`, pillar.title),
-        description: text(`pillars.${index}.description`, pillar.description),
+const leadershipMessages = computed(() =>
+    defaultLeadershipMessages.map((message) => ({
+        ...message,
+        title: text(`leadership.${message.key}.title`, message.title),
+        body: text(`leadership.${message.key}.body`, message.body),
+        name: text(`leadership.${message.key}.name`, message.name),
+        designation: text(
+            `leadership.${message.key}.designation`,
+            message.designation,
+        ),
     })),
 );
+const teamMembers = computed(() => {
+    const members = contentValue('team.members');
+
+    if (!Array.isArray(members)) {
+        return defaultTeamMembers.map((member, index) => ({
+            ...member,
+            image_slot: `team-${index + 1}`,
+        }));
+    }
+
+    return members.map((member, index) => ({
+        name:
+            typeof member?.name === 'string' && member.name.trim() !== ''
+                ? member.name
+                : 'Team Member Name',
+        designation:
+            typeof member?.designation === 'string' && member.designation.trim() !== ''
+                ? member.designation
+                : 'Team Member',
+        phone: typeof member?.phone === 'string' ? member.phone : '',
+        email: typeof member?.email === 'string' ? member.email : '',
+        image_slot:
+            typeof member?.image_slot === 'string'
+                ? member.image_slot
+                : `team-${index + 1}`,
+    }));
+});
 const imageFor = (slot: string, fallback: string): string =>
     props.gallery?.find((image) => image.alt_text === 'about-' + slot)?.url ??
     fallback;
+const uploadedImage = (slot: string): string | undefined =>
+    props.gallery?.find((image) => image.alt_text === 'about-' + slot)?.url;
 </script>
 
 <template>
@@ -184,111 +231,140 @@ const imageFor = (slot: string, fallback: string): string =>
                 </div>
             </div>
         </section>
-        <section
-            class="mx-auto grid max-w-7xl gap-12 px-4 py-18 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:gap-20 lg:px-8 lg:py-24"
-        >
-            <div class="relative order-2 lg:order-1">
-                <div
-                    class="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-orange-300/50"
-                ></div>
-                <div
-                    class="relative flex min-h-80 flex-col justify-end overflow-hidden rounded-2xl bg-muted p-8"
-                >
-                    <div class="absolute inset-0 bg-jack-blue/75"></div>
-                    <div class="relative max-w-xs text-white">
-                        <p
-                            class="text-xs font-bold tracking-[0.18em] text-orange-300 uppercase"
-                        >
-                            Our promise
-                        </p>
-                        <p
-                            class="mt-3 text-2xl leading-tight font-bold text-gray-600"
-                        >
-                            The right machine is only the beginning.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="order-1 lg:order-2">
+        <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+            <div>
                 <p
                     class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase"
                 >
-                    Who we are
+                    {{ text('who.eyebrow', 'Who we are') }}
                 </p>
                 <h2
                     class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
                 >
-                    A local partner for every stitch of progress.
+                    {{ text('who.title', 'A local partner for every stitch of progress.') }}
                 </h2>
                 <div
                     class="mt-6 space-y-4 text-base leading-7 text-muted-foreground"
                 >
-                    <p>
+                    <p v-if="!contentValue('who.description_first')">
                         Jack Bangladesh serves the people behind one of the
                         world’s most dynamic apparel industries. Our work is
                         rooted in a simple belief: production technology should
                         make skilled work more capable, not more complicated.
-                    </p>
-                    <p>
+                    </p><p v-else>{{ text('who.description_first', '') }}</p>
+                    <p v-if="!contentValue('who.description_second')">
                         Whether you are setting up a new line or improving an
                         established one, we help you find practical equipment
                         solutions that fit the way your team works.
-                    </p>
+                    </p><p v-else>{{ text('who.description_second', '') }}</p>
                 </div>
                 <ul class="mt-7 space-y-3 text-sm font-medium text-foreground">
                     <li class="flex items-center gap-3">
                         <span
                             class="grid size-5 place-items-center rounded-full bg-jack-blue text-white"
                             ><Check class="size-3" /></span
-                        >Industrial sewing expertise, made approachable
+                        >{{ text('who.bullets.0', 'Industrial sewing expertise, made approachable') }}
                     </li>
                     <li class="flex items-center gap-3">
                         <span
                             class="grid size-5 place-items-center rounded-full bg-jack-blue text-white"
                             ><Check class="size-3" /></span
-                        >Solutions for evolving production needs
+                        >{{ text('who.bullets.1', 'Solutions for evolving production needs') }}
                     </li>
                     <li class="flex items-center gap-3">
                         <span
                             class="grid size-5 place-items-center rounded-full bg-jack-blue text-white"
                             ><Check class="size-3" /></span
-                        >A team that stays close to the work
+                        >{{ text('who.bullets.2', 'A team that stays close to the work') }}
                     </li>
                 </ul>
             </div>
         </section>
         <section class="border-y border-border bg-muted/35 py-18 lg:py-24">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="max-w-2xl">
-                    <p
-                        class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase"
+            <div class="mx-auto max-w-7xl space-y-16 px-4 sm:px-6 lg:space-y-24 lg:px-8">
+                <article
+                    v-for="(message, index) in leadershipMessages"
+                    :key="message.title"
+                    class="grid items-center gap-8 lg:grid-cols-12 lg:gap-16"
+                >
+                    <div
+                        :class="[
+                            'lg:col-span-5',
+                            index === 1 ? 'lg:order-2' : '',
+                        ]"
                     >
-                        How we help
-                    </p>
-                    <h2
-                        class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+                        <img v-if="uploadedImage(message.key)" :src="uploadedImage(message.key)" :alt="message.imageLabel" class="aspect-square size-full rounded-2xl object-cover lg:aspect-[3/4]" />
+                        <div v-else
+                            class="grid aspect-square place-items-center overflow-hidden rounded-2xl border border-border bg-jack-blue p-6 text-center text-sm font-medium text-white/70 lg:aspect-[3/4]"
+                        >
+                            {{ message.imageLabel }}
+                        </div>
+                    </div>
+                    <div
+                        :class="[
+                            'lg:col-span-7',
+                            index === 1 ? 'lg:order-1' : '',
+                        ]"
                     >
-                        More than a machine supplier.
-                    </h2>
-                </div>
-                <div class="mt-10 grid gap-5 md:grid-cols-3">
-                    <article
-                        v-for="pillar in pillars"
-                        :key="pillar.title"
-                        class="rounded-xl border border-border bg-card p-6 shadow-sm"
-                    >
-                        <component
-                            :is="pillar.icon"
-                            class="size-7 text-jack-blue"
-                        />
-                        <h3 class="mt-5 text-xl font-bold">
-                            {{ pillar.title }}
-                        </h3>
-                        <p class="mt-3 text-sm leading-6 text-muted-foreground">
-                            {{ pillar.description }}
+                        <p class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase">
+                            Leadership
                         </p>
-                    </article>
-                </div>
+                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                            {{ message.title }}
+                        </h2>
+                        <p class="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+                            {{ message.body }}
+                        </p>
+                        <div class="mt-7 border-l-4 border-orange-300 pl-4">
+                            <p class="font-bold text-foreground">{{ message.name }}</p>
+                            <p class="mt-1 text-sm text-muted-foreground">{{ message.designation }}</p>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+        <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
+            <div class="max-w-2xl">
+                <p class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase">
+                    Our team
+                </p>
+                <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                    The people behind your progress.
+                </h2>
+                <p class="mt-4 text-base leading-7 text-muted-foreground">
+                    Meet the team ready to help with products, service, and support.
+                </p>
+            </div>
+            <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <article
+                    v-for="member in teamMembers"
+                    :key="member.image_slot"
+                    class="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+                >
+                    <img
+                        v-if="uploadedImage(member.image_slot)"
+                        :src="uploadedImage(member.image_slot)"
+                        :alt="member.name"
+                        class="block aspect-square w-full object-cover"
+                    />
+                    <div v-else class="grid aspect-square place-items-center bg-jack-blue p-6 text-center text-sm font-medium text-white/70">
+                        Team member portrait
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold">{{ member.name }}</h3>
+                        <p class="mt-1 text-sm font-medium text-jack-blue">{{ member.designation }}</p>
+                        <div class="mt-5 space-y-3 border-t border-border pt-5 text-sm text-muted-foreground">
+                            <a :href="`tel:${member.phone.replaceAll(' ', '')}`" class="flex items-center gap-2 hover:text-jack-blue">
+                                <Phone class="size-4 shrink-0" />
+                                {{ member.phone }}
+                            </a>
+                            <a :href="`mailto:${member.email}`" class="flex items-center gap-2 break-all hover:text-jack-blue">
+                                <Mail class="size-4 shrink-0" />
+                                {{ member.email }}
+                            </a>
+                        </div>
+                    </div>
+                </article>
             </div>
         </section>
         <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
@@ -303,13 +379,12 @@ const imageFor = (slot: string, fallback: string): string =>
                 <h2
                     class="mx-auto mt-3 max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl"
                 >
-                    Ready to make your production line work smarter?
+                    {{ text('cta.title', 'Ready to make your production line work smarter?') }}
                 </h2>
                 <p
                     class="mx-auto mt-4 max-w-xl text-sm leading-6 text-white/80"
                 >
-                    Explore the Jack range or speak with our team about the
-                    right solution for your operation.
+                    {{ text('cta.description', 'Explore the Jack range or speak with our team about the right solution for your operation.') }}
                 </p>
                 <div class="mt-7 flex flex-wrap justify-center gap-3">
                     <a

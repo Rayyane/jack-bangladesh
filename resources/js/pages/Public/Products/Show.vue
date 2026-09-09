@@ -57,7 +57,7 @@ const videoEmbedUrl = computed(() => {
                     <div class="space-y-2">
                         <span
                             v-if="product.category"
-                            class="text-xs font-bold tracking-widest text-jack-blue uppercase"
+                            class="text-xl font-bold tracking-widest text-jack-blue"
                             >{{ product.category.name }}</span
                         >
                         <h1
