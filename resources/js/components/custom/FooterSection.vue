@@ -24,7 +24,7 @@ const handleSubmit = () => {
         <div class="md:col-span-3 space-y-2">
           <a href="#" class="inline-block">
             <img 
-              src="/jacklogo.png" 
+              src="/jbl_logo.png" 
               alt="Jack Logo" 
               class="h-9 w-auto object-contain brightness-0 invert" 
             />

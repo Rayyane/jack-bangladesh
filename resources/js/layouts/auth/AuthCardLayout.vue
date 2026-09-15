@@ -28,7 +28,7 @@ defineProps<{
                     <!-- <AppLogoIcon
                         class="size-9 fill-current text-black dark:text-white"
                     /> -->
-                    <img src="/jacklogo.png" alt="Jack Logo" class="w-auto object-contain" />
+                    <img src="/jbl_logo.png" alt="Jack Logo" class="w-auto object-contain brightness-0 invert" />
                 </div>
             </Link>
 

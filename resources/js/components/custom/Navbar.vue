@@ -119,7 +119,7 @@ function clearSearch() {
                         </button>
 
                         <a href="/" class="block">
-                            <img src="/jacklogo.png" alt="Jack Logo"
+                            <img src="/jbl_logo.png" alt="Jack Logo"
                                 class="h-6 w-auto object-contain brightness-0 invert sm:h-8" />
                         </a>
                     </div>

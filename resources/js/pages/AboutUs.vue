@@ -234,7 +234,7 @@ const uploadedImage = (slot: string): string | undefined =>
         <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
             <div>
                 <p
-                    class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase"
+                    class="text-md font-bold tracking-[0.18em] text-jack-blue uppercase"
                 >
                     {{ text('who.eyebrow', 'Who we are') }}
                 </p>
@@ -306,7 +306,7 @@ const uploadedImage = (slot: string): string | undefined =>
                             index === 1 ? 'lg:order-1' : '',
                         ]"
                     >
-                        <p class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase">
+                        <p class="text-md font-bold tracking-[0.18em] text-jack-blue uppercase">
                             Leadership
                         </p>
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -317,7 +317,7 @@ const uploadedImage = (slot: string): string | undefined =>
                         </p>
                         <div class="mt-7 border-l-4 border-orange-300 pl-4">
                             <p class="font-bold text-foreground">{{ message.name }}</p>
-                            <p class="mt-1 text-sm text-muted-foreground">{{ message.designation }}</p>
+                            <p class="mt-1 text-lg text-muted-foreground">{{ message.designation }}</p>
                         </div>
                     </div>
                 </article>
@@ -325,7 +325,7 @@ const uploadedImage = (slot: string): string | undefined =>
         </section>
         <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
             <div class="max-w-2xl">
-                <p class="text-xs font-bold tracking-[0.18em] text-jack-blue uppercase">
+                <p class="text-md font-bold tracking-[0.18em] text-jack-blue uppercase">
                     Our team
                 </p>
                 <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -372,7 +372,7 @@ const uploadedImage = (slot: string): string | undefined =>
                 class="rounded-2xl bg-jack-blue px-6 py-10 text-center text-white sm:px-12 sm:py-14"
             >
                 <p
-                    class="text-xs font-bold tracking-[0.18em] text-orange-300 uppercase"
+                    class="text-sm font-bold tracking-[0.18em] text-orange-300 uppercase"
                 >
                     Let’s build what’s next
                 </p>

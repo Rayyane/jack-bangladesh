@@ -61,7 +61,7 @@ const videoEmbedUrl = computed(() => {
                             >{{ product.category.name }}</span
                         >
                         <h1
-                            class="text-4xl font-extrabold tracking-tight text-foreground lg:text-5xl"
+                            class="text-2xl font-extrabold tracking-tight text-foreground lg:text-3xl"
                         >
                             {{ revision.name }}
                         </h1>
