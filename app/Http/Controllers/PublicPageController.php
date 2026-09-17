@@ -114,7 +114,8 @@ class PublicPageController extends Controller
                     : ($product->publishedRevision->primary_image_path
                         ? Storage::url($product->publishedRevision->primary_image_path)
                         : $product->publishedRevision->gallery->first()?->url),
-                'leaflet' => $product->publishedRevision->specifications()->first()?->url,
+                'leaflet' => $product->publishedRevision->leaflets()->first()?->url
+                    ?? $product->publishedRevision->specifications()->first()?->url,
             ]);
  
         return [

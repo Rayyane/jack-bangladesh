@@ -126,6 +126,8 @@ const products = computed(() =>
                             :href="
                                 product.leaflet ?? `/products/${product.slug}`
                             "
+                            :target="product.leaflet?.toLowerCase().endsWith('.pdf') ? '_blank' : undefined"
+                            :rel="product.leaflet?.toLowerCase().endsWith('.pdf') ? 'noopener' : undefined"
                             class="block rounded-md border border-border/80 bg-muted/10 py-1.5 text-sm text-foreground transition-all duration-150 hover:border-jack-blue/20 hover:bg-muted hover:text-jack-blue"
                         >
                             Leaflet

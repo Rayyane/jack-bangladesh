@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import {
     Building2,
     CheckCircle2,
@@ -24,7 +24,7 @@ const text = (key: string, fallback: string): string => {
     return typeof value === 'string' && value !== '' ? value : fallback;
 };
 
-const form = ref({ name: '', email: '', phone: '', subject: '', message: '' });
+const form = useForm({ name: '', email: '', phone: '', subject: '', message: '', source: 'contact' });
 const submitted = ref(false);
 const contactCards = computed(() => [
     {
@@ -59,12 +59,17 @@ const contactCards = computed(() => [
 ]);
 
 function submitForm() {
-    submitted.value = true;
+    form.post('/enquiries', {
+        preserveScroll: true,
+        onSuccess: () => {
+            submitted.value = true;
+            form.reset('name', 'email', 'phone', 'subject', 'message');
+        },
+    });
 }
 </script>
 
 <template>
-    <Head :title="text('meta_title', 'Contact Jack Bangladesh')" />
     <Navbar />
     <main class="overflow-hidden bg-background font-sans text-foreground">
         <section
@@ -240,10 +245,12 @@ function submitForm() {
                     </label>
                     <button
                         type="submit"
+                        :disabled="form.processing"
                         class="inline-flex items-center gap-2 rounded-lg bg-jack-blue px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-jack-blue/90"
                     >
-                        <Send class="size-4" /> Send enquiry
+                        <Send class="size-4" /> {{ form.processing ? 'Sending...' : 'Send enquiry' }}
                     </button>
+                    <p v-if="form.errors.email || form.errors.message" class="text-sm text-destructive">{{ form.errors.email || form.errors.message }}</p>
                 </form>
                 <div
                     v-else
@@ -254,15 +261,7 @@ function submitForm() {
                         Thanks for getting in touch.
                     </h3>
                     <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                        Your enquiry is ready for our team. To send it now,
-                        please email us at
-                        <a
-                            :href="`mailto:${text('contact.email', 'info@jackbangladesh.com')}`"
-                            class="font-semibold text-jack-blue underline"
-                            >{{
-                                text('contact.email', 'info@jackbangladesh.com')
-                            }}</a
-                        >.
+                        Your enquiry has been sent to our team. We will get back to you shortly.
                     </p>
                     <button
                         type="button"

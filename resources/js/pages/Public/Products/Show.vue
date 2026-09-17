@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import Footer from '@/components/custom/FooterSection.vue';
 import Navbar from '@/components/custom/Navbar.vue';
+import SeoMeta from '@/components/SeoMeta.vue';
 
 type Section = {
     id: number;
@@ -16,10 +17,13 @@ const props = defineProps<{
         name: string;
         description: string;
         price: string | null;
+        meta_title: string | null;
+        meta_description: string | null;
         video_url: string | null;
         primary_image_url: string | null;
         sections: Section[];
         specifications: { url: string } | null;
+        leaflet: { url: string } | null;
     };
 }>();
 const videoEmbedUrl = computed(() => {
@@ -38,6 +42,12 @@ const videoEmbedUrl = computed(() => {
 </script>
 
 <template>
+    <SeoMeta
+        :title="revision.meta_title || revision.name"
+        :description="revision.meta_description || revision.description"
+        :image="revision.primary_image_url"
+        type="product"
+    />
     <Navbar />
     <main class="min-h-screen bg-background font-sans">
         <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -78,8 +88,8 @@ const videoEmbedUrl = computed(() => {
                             class="flex-1 rounded-lg bg-jack-blue py-3.5 text-center text-xs font-bold text-white"
                             >Locate Nearest Dealer</a
                         ><a
-                            v-if="revision.specifications"
-                            :href="revision.specifications.url"
+                            v-if="revision.leaflet ?? revision.specifications"
+                            :href="(revision.leaflet ?? revision.specifications)!.url"
                             target="_blank"
                             class="flex-1 rounded-lg border border-border bg-card py-3.5 text-center text-xs font-bold text-foreground"
                             >Download Official Leaflet</a

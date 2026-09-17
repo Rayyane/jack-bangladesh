@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
 import { ArrowRight, Check, Mail, Phone, Sparkles } from '@lucide/vue';
 import { computed } from 'vue';
 import Footer from '@/components/custom/FooterSection.vue';
@@ -70,29 +69,49 @@ const stats = computed(() =>
         label: text(`stats.${index}.label`, stat.label),
     })),
 );
-const leadershipMessages = computed(() =>
-    defaultLeadershipMessages.map((message) => ({
+const leadershipMessages = computed(() => {
+    const messages = contentValue('leadership_messages');
+
+    if (Array.isArray(messages)) {
+        return messages.map((message, index) => ({
+            key: typeof message?.image_slot === 'string' ? message.image_slot : `leadership-${index + 1}`,
+            imageLabel: 'Leadership portrait',
+            title: typeof message?.title === 'string' && message.title.trim() ? message.title : 'Leadership Message',
+            body: typeof message?.body === 'string' ? message.body : '',
+            name: typeof message?.name === 'string' ? message.name : '',
+            designation: typeof message?.designation === 'string' ? message.designation : '',
+        }));
+    }
+
+    return defaultLeadershipMessages.map((message) => ({
         ...message,
         title: text(`leadership.${message.key}.title`, message.title),
         body: text(`leadership.${message.key}.body`, message.body),
         name: text(`leadership.${message.key}.name`, message.name),
-        designation: text(
-            `leadership.${message.key}.designation`,
-            message.designation,
-        ),
-    })),
-);
-const teamMembers = computed(() => {
-    const members = contentValue('team.members');
+        designation: text(`leadership.${message.key}.designation`, message.designation),
+    }));
+});
+const teamSections = computed(() => {
+    const sections = contentValue('team.sections');
 
-    if (!Array.isArray(members)) {
-        return defaultTeamMembers.map((member, index) => ({
-            ...member,
-            image_slot: `team-${index + 1}`,
+    if (Array.isArray(sections)) {
+        return sections.map((section, index) => ({
+            title: typeof section?.title === 'string' && section.title.trim() ? section.title : `Team ${index + 1}`,
+            description: typeof section?.description === 'string' ? section.description : '',
+            members: Array.isArray(section?.members) ? section.members.map((member: any, memberIndex: number) => normaliseMember(member, memberIndex)) : [],
         }));
     }
 
-    return members.map((member, index) => ({
+    const members = contentValue('team.members');
+
+    if (!Array.isArray(members)) {
+        return [{ title: 'Our team', description: 'Meet the team ready to help with products, service, and support.', members: defaultTeamMembers.map(normaliseMember) }];
+    }
+
+    return [{ title: 'Our team', description: 'Meet the team ready to help with products, service, and support.', members: members.map(normaliseMember) }];
+});
+function normaliseMember(member: any, index: number) {
+    return {
         name:
             typeof member?.name === 'string' && member.name.trim() !== ''
                 ? member.name
@@ -107,8 +126,8 @@ const teamMembers = computed(() => {
             typeof member?.image_slot === 'string'
                 ? member.image_slot
                 : `team-${index + 1}`,
-    }));
-});
+    };
+}
 const imageFor = (slot: string, fallback: string): string =>
     props.gallery?.find((image) => image.alt_text === 'about-' + slot)?.url ??
     fallback;
@@ -117,7 +136,6 @@ const uploadedImage = (slot: string): string | undefined =>
 </script>
 
 <template>
-    <Head :title="text('meta_title', 'About Jack Bangladesh')" />
     <Navbar />
     <main class="overflow-hidden bg-background font-sans text-foreground">
         <section
@@ -183,7 +201,7 @@ const uploadedImage = (slot: string): string | undefined =>
                             class="flex items-center justify-between border-b border-white/15 pb-5"
                         >
                             <span class="text-sm font-semibold"
-                                >Built around your floor</span
+                                >{{ text('hero.image_title', 'Built around your floor') }}</span
                             ><Sparkles class="size-5 text-orange-300" />
                         </div>
                         <img
@@ -191,19 +209,8 @@ const uploadedImage = (slot: string): string | undefined =>
                             alt="Jack industrial sewing machine"
                             class="mx-auto h-55 w-full object-contain sm:h-64"
                         />
-                        <div
-                            class="grid grid-cols-2 gap-3 border-t border-white/15 pt-5 text-sm"
-                        >
-                            <div>
-                                <span class="block text-xs text-white/60"
-                                    >Purpose</span
-                                ><strong>Better output</strong>
-                            </div>
-                            <div>
-                                <span class="block text-xs text-white/60"
-                                    >Approach</span
-                                ><strong>Practical support</strong>
-                            </div>
+                        <div class="border-t border-white/15 pt-5 text-sm text-white/75">
+                            {{ text('hero.image_caption', 'Practical technology and support for better output.') }}
                         </div>
                     </div>
                 </div>
@@ -335,9 +342,14 @@ const uploadedImage = (slot: string): string | undefined =>
                     Meet the team ready to help with products, service, and support.
                 </p>
             </div>
-            <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div v-for="(section, sectionIndex) in teamSections" :key="`${section.title}-${sectionIndex}`" class="mt-10 first:mt-10">
+                <div v-if="teamSections.length > 1" class="mb-6 border-l-4 border-orange-300 pl-4">
+                    <h3 class="text-2xl font-bold">{{ section.title }}</h3>
+                    <p v-if="section.description" class="mt-1 text-sm text-muted-foreground">{{ section.description }}</p>
+                </div>
+                <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <article
-                    v-for="member in teamMembers"
+                    v-for="member in section.members"
                     :key="member.image_slot"
                     class="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                 >
@@ -365,6 +377,7 @@ const uploadedImage = (slot: string): string | undefined =>
                         </div>
                     </div>
                 </article>
+                </div>
             </div>
         </section>
         <section class="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">

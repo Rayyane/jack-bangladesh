@@ -98,6 +98,12 @@ class ProductRevision extends Model
         return $this->media()->where('collection', 'specifications');
     }
 
+    /** The optional PDF leaflet for this revision. */
+    public function leaflets()
+    {
+        return $this->media()->where('collection', Media::COLLECTION_LEAFLETS);
+    }
+
     // -------------------------------------------------------------------------
     // Workflow helpers
     // -------------------------------------------------------------------------

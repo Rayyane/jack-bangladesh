@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PageRevisionController;
 use App\Http\Controllers\ProductController;
@@ -32,6 +33,7 @@ Route::get('/about', fn () => app(PublicPageController::class)->show('about'))->
 Route::get('/contact', fn () => app(PublicPageController::class)->show('contact'))->name('contact');
 Route::get('/search', [PublicSearchController::class, 'index'])->name('search');
 Route::get('/search/suggestions', [PublicSearchController::class, 'suggestions'])->name('search.suggestions');
+Route::post('/enquiries', [EnquiryController::class, 'store'])->middleware('throttle:5,1')->name('enquiries.store');
 
 // Product catalog and individual product pages.
 Route::get('/products', [PublicProductController::class, 'index'])->name('products.index');

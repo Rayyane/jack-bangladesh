@@ -156,7 +156,7 @@ class PublicProductController extends Controller
     {
         $revision = $product->publishedRevision;
 
-        $revision->load(['sections', 'gallery', 'specifications']);
+        $revision->load(['sections', 'gallery', 'specifications', 'leaflets']);
 
         return Inertia::render('Public/Products/Show', [
             'product' => [
@@ -179,6 +179,8 @@ class PublicProductController extends Controller
                 'price' => $revision->price,
                 'meta_title' => $revision->meta_title,
                 'meta_description' => $revision->meta_description,
+                'meta_title' => $revision->meta_title,
+                'meta_description' => $revision->meta_description,
                 'video_url' => $revision->video_url,
                 'primary_image_url' => $revision->primary_image_path
                     ? Media::publicUrl($revision->primary_image_path)
@@ -198,6 +200,9 @@ class PublicProductController extends Controller
                 ]),
                 'specifications' => $revision->specifications()->first()
                     ? ['url' => $revision->specifications()->first()->url]
+                    : null,
+                'leaflet' => $revision->leaflets()->first()
+                    ? ['url' => $revision->leaflets()->first()->url]
                     : null,
             ],
         ]);

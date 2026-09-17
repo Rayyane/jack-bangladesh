@@ -40,6 +40,8 @@ class Media extends Model
 
     const COLLECTION_SPECIFICATIONS = 'specifications';
 
+    const COLLECTION_LEAFLETS = 'leaflets';
+
     const COLLECTION_DEFAULT = 'default';
 
     // -------------------------------------------------------------------------

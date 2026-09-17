@@ -121,6 +121,7 @@ class ProductController extends Controller
             'primary_image' => ['required', 'file', 'image', 'max:102400'],
             'card_image' => [Rule::requiredIf($request->boolean('is_featured')), 'nullable', 'file', 'image', 'max:5120'],
             'spec_image' => ['required', 'file', 'image', 'max:10240'],
+            'leaflet_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
 
             // Sections submitted on initial create.
             'sections' => ['nullable', 'array'],
@@ -169,6 +170,18 @@ class ProductController extends Controller
                 'size' => $specification->getSize(),
                 'alt_text' => $validated['name'].' specifications',
             ]);
+
+            if ($request->hasFile('leaflet_pdf')) {
+                $leaflet = $request->file('leaflet_pdf');
+                $revision->media()->create([
+                    'collection' => Media::COLLECTION_LEAFLETS,
+                    'path' => $leaflet->store('products/leaflets', 'public'),
+                    'disk' => 'public',
+                    'mime_type' => $leaflet->getMimeType(),
+                    'size' => $leaflet->getSize(),
+                    'alt_text' => $validated['name'].' leaflet',
+                ]);
+            }
 
             // 4. Store any sections submitted on the create form.
             if (! empty($validated['sections'])) {
@@ -227,7 +240,7 @@ class ProductController extends Controller
             });
         }
 
-        $draft->load(['sections', 'gallery', 'specifications']);
+        $draft->load(['sections', 'gallery', 'specifications', 'leaflets']);
 
         return Inertia::render('Cms/Products/Edit', [
             'product' => [
@@ -274,6 +287,9 @@ class ProductController extends Controller
                         'id' => $draft->specifications()->first()->id,
                         'url' => $draft->specifications()->first()->url,
                     ]
+                    : null,
+                'leaflet' => $draft->leaflets()->first()
+                    ? ['id' => $draft->leaflets()->first()->id, 'url' => $draft->leaflets()->first()->url]
                     : null,
             ],
             'published_revision' => $product->publishedRevision
@@ -335,6 +351,7 @@ class ProductController extends Controller
 
             // Spec sheet image (single).
             'spec_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'leaflet_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
 
             // IDs of gallery images the editor wants to remove.
             'remove_gallery_ids' => ['nullable', 'array'],
@@ -488,6 +505,19 @@ class ProductController extends Controller
                     'mime_type' => $file->getMimeType(),
                     'size' => $file->getSize(),
                     'alt_text' => $validated['name'].' specifications',
+                ]);
+            }
+
+            if ($request->hasFile('leaflet_pdf')) {
+                $revision->leaflets()->get()->each->delete();
+                $file = $request->file('leaflet_pdf');
+                $revision->media()->create([
+                    'collection' => Media::COLLECTION_LEAFLETS,
+                    'path' => $file->store('products/leaflets', 'public'),
+                    'disk' => 'public',
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'alt_text' => $validated['name'].' leaflet',
                 ]);
             }
         });

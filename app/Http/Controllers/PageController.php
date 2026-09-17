@@ -135,12 +135,21 @@ class PageController extends Controller
             'meta_description' => ['nullable', 'string', 'max:500'],
             'about_images' => ['nullable', 'array'],
             'about_images.*' => ['nullable', 'file', 'image', 'max:5120'],
-            'team_members' => ['nullable', 'array'],
-            'team_members.*.name' => ['nullable', 'string', 'max:255'],
-            'team_members.*.designation' => ['nullable', 'string', 'max:255'],
-            'team_members.*.phone' => ['nullable', 'string', 'max:100'],
-            'team_members.*.email' => ['nullable', 'email', 'max:255'],
-            'team_members.*.image_slot' => ['required_with:team_members', 'string', 'max:100'],
+            'leadership_messages' => ['nullable', 'array'],
+            'leadership_messages.*.title' => ['nullable', 'string', 'max:255'],
+            'leadership_messages.*.body' => ['nullable', 'string'],
+            'leadership_messages.*.name' => ['nullable', 'string', 'max:255'],
+            'leadership_messages.*.designation' => ['nullable', 'string', 'max:255'],
+            'leadership_messages.*.image_slot' => ['required_with:leadership_messages', 'string', 'max:100'],
+            'team_sections' => ['nullable', 'array'],
+            'team_sections.*.title' => ['nullable', 'string', 'max:255'],
+            'team_sections.*.description' => ['nullable', 'string', 'max:1000'],
+            'team_sections.*.members' => ['nullable', 'array'],
+            'team_sections.*.members.*.name' => ['nullable', 'string', 'max:255'],
+            'team_sections.*.members.*.designation' => ['nullable', 'string', 'max:255'],
+            'team_sections.*.members.*.phone' => ['nullable', 'string', 'max:100'],
+            'team_sections.*.members.*.email' => ['nullable', 'email', 'max:255'],
+            'team_sections.*.members.*.image_slot' => ['required_with:team_sections.*.members', 'string', 'max:100'],
             'home_images' => ['nullable', 'array'],
             'home_images.primary' => ['nullable', 'file', 'image', 'max:5120'],
             'home_images.secondary' => ['nullable', 'file', 'image', 'max:5120'],
@@ -154,9 +163,17 @@ class PageController extends Controller
                 'meta_description',
             ])->all();
 
-            if ($revision->page->template_key === 'about' && array_key_exists('team_members', $validated)) {
+            if ($revision->page->template_key === 'about') {
                 $content = $revisionData['content'] ?? $revision->content ?? [];
-                $content['team']['members'] = array_values($validated['team_members'] ?? []);
+
+                if (array_key_exists('leadership_messages', $validated)) {
+                    $content['leadership_messages'] = array_values($validated['leadership_messages'] ?? []);
+                }
+
+                if (array_key_exists('team_sections', $validated)) {
+                    $content['team']['sections'] = array_values($validated['team_sections'] ?? []);
+                }
+
                 $revisionData['content'] = $content;
             }
 

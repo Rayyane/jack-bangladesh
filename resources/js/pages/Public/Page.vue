@@ -2,10 +2,13 @@
 import Home from '@/pages/Home.vue';
 import AboutUs from '@/pages/AboutUs.vue';
 import Contact from '@/pages/Contact.vue';
+import SeoMeta from '@/components/SeoMeta.vue';
 
 defineProps<{
     template_key: string;
     content: Record<string, unknown> | null;
+    meta_title?: string | null;
+    meta_description?: string | null;
     gallery?: { id: number; url: string; alt_text: string | null }[];
     featured_categories?: {
         id: number;
@@ -25,6 +28,11 @@ defineProps<{
 </script>
 
 <template>
+    <SeoMeta
+        :title="meta_title ?? (template_key === 'home' ? 'Jack Bangladesh' : template_key === 'about' ? 'About Jack Bangladesh' : 'Contact Jack Bangladesh')"
+        :description="meta_description"
+        :image="gallery?.find((image) => image.alt_text === `${template_key}-hero`)?.url ?? null"
+    />
     <Home
         v-if="template_key === 'home'"
         :content="content"

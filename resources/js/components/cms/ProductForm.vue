@@ -33,6 +33,7 @@ type Revision = {
     sections: Section[];
     gallery: GalleryImage[];
     specifications: { id: number; url: string } | null;
+    leaflet: { id: number; url: string } | null;
 };
 
 const props = defineProps<{
@@ -68,6 +69,7 @@ const form = useForm({
     gallery_images: [] as File[],
     remove_gallery_ids: [] as number[],
     spec_image: null as File | null,
+    leaflet_pdf: null as File | null,
 });
 
 const galleryPreviews = ref<{ file: File; url: string }[]>([]);
@@ -75,6 +77,7 @@ const sectionPreviews = ref<Record<number, string>>({});
 const specificationPreview = ref<string | null>(
     props.revision?.specifications?.url ?? null,
 );
+const leafletName = ref<string | null>(null);
 const primaryImagePreview = ref<string | null>(
     props.revision?.primary_image_url ?? null,
 );
@@ -131,6 +134,11 @@ function chooseSpecification(event: Event) {
     if (file) {
         specificationPreview.value = URL.createObjectURL(file);
     }
+}
+function chooseLeaflet(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.leaflet_pdf = file;
+    leafletName.value = file?.name ?? null;
 }
 function chooseImage(field: 'primary_image' | 'card_image', event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0] ?? null;
@@ -439,6 +447,15 @@ function submit() {
                     class="max-h-48 rounded border object-contain"
                 />
                 <InputError :message="form.errors.spec_image" />
+            </section>
+            <section class="space-y-3 rounded-lg border bg-card p-5">
+                <h2 class="font-semibold">Product leaflet (PDF)</h2>
+                <p class="text-sm text-muted-foreground">Optional. When present, the Leaflet button on product cards opens this PDF in a new tab; otherwise it opens the specification image.</p>
+                <label for="leaflet-pdf" class="inline-flex cursor-pointer rounded-md border px-3 py-2 text-sm">Choose PDF leaflet</label>
+                <input id="leaflet-pdf" type="file" accept="application/pdf,.pdf" class="sr-only" @change="chooseLeaflet" />
+                <p v-if="leafletName" class="text-sm text-muted-foreground">Selected: {{ leafletName }}</p>
+                <a v-else-if="revision?.leaflet" :href="revision.leaflet.url" target="_blank" rel="noopener" class="text-sm font-medium text-jack-blue hover:underline">View current PDF leaflet</a>
+                <InputError :message="form.errors.leaflet_pdf" />
             </section>
             <section
                 class="grid gap-5 rounded-lg border bg-card p-5 md:grid-cols-2"

@@ -1,14 +1,10 @@
 <!-- FooterSection.vue -->
 <script setup lang="ts">
-import { ref } from 'vue';
+import { useForm } from '@inertiajs/vue3';
+import { Phone } from '@lucide/vue';
 
-const email = ref('');
-const message = ref('');
-
-const handleSubmit = () => {
-  // Handle form submission logic here
-  console.log({ email: email.value, message: message.value });
-};
+const form = useForm({ email: '', message: '', source: 'footer' });
+const handleSubmit = () => form.post('/enquiries', { preserveScroll: true, onSuccess: () => form.reset('email', 'message') });
 </script>
 
 <template>
@@ -29,13 +25,27 @@ const handleSubmit = () => {
               class="h-9 w-auto object-contain brightness-0 invert" 
             />
           </a>
+
+          <div class="flex items-center space-x-4 text-white/50">
+            <span class="text-[11px] uppercase tracking-wider font-semibold font-roboto">Innovation • Quality • Service</span>
+          </div>
+
           <p class="text-sm text-white/90 font-sans leading-relaxed max-w-sm">
-            Empowering the global apparel manufacturing industry with intelligent, high-precision sewing technology and advanced automation frameworks.
+            <span class="font-bold">Corporate Office:</span><br>
+            House No 8/6/1, Road No: 1, Shyamoli, Sher-E-Bangla Nagar, Dhaka-1207.<br>
+            <span class="flex items-center gap-2"><Phone class="size-3"/> +880 1971-564600</span>
+          </p>
+
+          <p class="text-sm text-white/90 font-sans leading-relaxed max-w-sm">
+            <span class="font-bold">Head Office:</span><br>
+            4/10, Sobuj Chaya Housing, Goran Charbari, (Mirpur Beribadh) Besides Water Development Board, Mirpur-1, Dhaka-1216.<br>
+            <span class="flex items-center gap-2"><Phone class="size-3"/> +88 01971-564595</span>
           </p>
           <!-- Social Icons / Trust Badges placeholder -->
           <div class="pt-2 flex items-center space-x-4 text-white/50">
             <span class="text-[11px] uppercase tracking-wider font-semibold font-roboto">Innovation • Quality • Service</span>
           </div>
+          
         </div>
 
         <!-- ========================================== -->
@@ -85,7 +95,7 @@ const handleSubmit = () => {
             <!-- Email Field -->
             <div>
               <input 
-                v-model="email"
+                v-model="form.email"
                 type="email" 
                 required
                 placeholder="Your corporate email address" 
@@ -96,7 +106,7 @@ const handleSubmit = () => {
             <!-- Message Field -->
             <div>
               <textarea 
-                v-model="message"
+                v-model="form.message"
                 rows="3"
                 required
                 placeholder="Describe your production line requirements..." 
@@ -109,8 +119,10 @@ const handleSubmit = () => {
               type="submit"
               class="w-full sm:w-auto px-5 py-2 bg-white text-jack-blue hover:bg-neutral-100 font-roboto font-bold text-xs rounded-lg shadow-sm transition-colors duration-150 cursor-pointer"
             >
-              Send Message
+              {{ form.processing ? 'Sending...' : 'Send Message' }}
             </button>
+            <p v-if="form.errors.email || form.errors.message" class="text-xs text-orange-200">{{ form.errors.email || form.errors.message }}</p>
+            <p v-if="form.recentlySuccessful" class="text-xs text-green-200">Thank you — your message has been sent.</p>
           </form>
         </div>
 
@@ -118,7 +130,7 @@ const handleSubmit = () => {
 
       <!-- Bottom Copyright Strip -->
       <div class="mt-12 lg:mt-16 pt-6 border-t border-white/10 text-center md:flex md:items-center md:justify-between text-[13px] text-white/90 font-roboto">
-        <p>&copy; 2026 Jack Sewing Machine Co. All rights reserved.</p>
+        <p>&copy; 2026 Jack Bangladesh Ltd. All rights reserved.</p>
         <div class="mt-2 md:mt-0 space-x-4">
           <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
           <a href="#" class="hover:text-white transition-colors">Terms of Service</a>

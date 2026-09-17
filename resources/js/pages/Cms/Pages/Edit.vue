@@ -34,15 +34,20 @@ const form = useForm({
     meta_description: props.revision.meta_description ?? '',
     about_images: {} as Record<string, File>,
     home_images: {} as Record<string, File>,
-    team_members: Array.isArray(props.revision.content?.team?.members)
-        ? props.revision.content.team.members.map((member: Record<string, unknown>, index: number) => ({
-              name: typeof member.name === 'string' ? member.name : '',
-              designation: typeof member.designation === 'string' ? member.designation : '',
-              phone: typeof member.phone === 'string' ? member.phone : '',
-              email: typeof member.email === 'string' ? member.email : '',
-              image_slot: typeof member.image_slot === 'string' ? member.image_slot : `team-${index + 1}`,
-          }))
-        : [],
+    leadership_messages: Array.isArray(props.revision.content?.leadership_messages)
+        ? props.revision.content.leadership_messages.map(normaliseLeadership)
+        : ['chairman', 'md'].map((key) => ({
+              title: typeof props.revision.content?.leadership?.[key]?.title === 'string' ? props.revision.content.leadership[key].title : '',
+              body: typeof props.revision.content?.leadership?.[key]?.body === 'string' ? props.revision.content.leadership[key].body : '',
+              name: typeof props.revision.content?.leadership?.[key]?.name === 'string' ? props.revision.content.leadership[key].name : '',
+              designation: typeof props.revision.content?.leadership?.[key]?.designation === 'string' ? props.revision.content.leadership[key].designation : '',
+              image_slot: key,
+          })),
+    team_sections: Array.isArray(props.revision.content?.team?.sections)
+        ? props.revision.content.team.sections.map(normaliseTeamSection)
+        : Array.isArray(props.revision.content?.team?.members)
+          ? [{ title: 'Our team', description: '', members: props.revision.content.team.members.map(normaliseMember) }]
+          : [],
 });
 const imagePreviews = ref<Record<string, string>>({});
 const isDraft = computed(() => props.revision.status === 'draft');
@@ -97,6 +102,16 @@ const fields = computed(() =>
                     label: 'Hero description',
                     placeholder: 'Page introduction',
                 },
+                {
+                    key: 'hero.image_title',
+                    label: 'Hero image title',
+                    placeholder: 'Built around your floor',
+                },
+                {
+                    key: 'hero.image_caption',
+                    label: 'Hero image caption',
+                    placeholder: 'Short caption below the hero image',
+                },
                 ...Array.from({ length: 4 }, (_, index) => [
                     {
                         key: `stats.${index}.value`,
@@ -118,12 +133,6 @@ const fields = computed(() =>
                     label: `Who we are bullet ${index + 1}`,
                     placeholder: 'Bullet point',
                 })),
-                ...['chairman', 'md'].flatMap((leader) => [
-                    { key: `leadership.${leader}.title`, label: `${leader} message title`, placeholder: `${leader} message` },
-                    { key: `leadership.${leader}.body`, label: `${leader} message`, placeholder: 'Message text' },
-                    { key: `leadership.${leader}.name`, label: `${leader} name`, placeholder: 'Full name' },
-                    { key: `leadership.${leader}.designation`, label: `${leader} designation`, placeholder: 'Designation' },
-                ]),
                 {
                     key: 'cta.title',
                     label: 'CTA title',
@@ -260,15 +269,29 @@ function selectImage(type: 'about' | 'home', slot: string, event: Event) {
     form[`${type}_images`][slot] = file;
     imagePreviews.value[`${type}-${slot}`] = URL.createObjectURL(file);
 }
-function addTeamMember() {
-    form.team_members.push({
-        name: '', designation: '', phone: '', email: '', image_slot: `team-${Date.now()}`,
-    });
+function normaliseLeadership(message: Record<string, unknown>, index: number) {
+    return {
+        title: typeof message.title === 'string' ? message.title : '', body: typeof message.body === 'string' ? message.body : '',
+        name: typeof message.name === 'string' ? message.name : '', designation: typeof message.designation === 'string' ? message.designation : '',
+        image_slot: typeof message.image_slot === 'string' ? message.image_slot : `leadership-${index + 1}`,
+    };
 }
-function removeTeamMember(index: number) {
-    const [member] = form.team_members.splice(index, 1);
+function normaliseMember(member: Record<string, unknown>, index: number) {
+    return { name: typeof member.name === 'string' ? member.name : '', designation: typeof member.designation === 'string' ? member.designation : '', phone: typeof member.phone === 'string' ? member.phone : '', email: typeof member.email === 'string' ? member.email : '', image_slot: typeof member.image_slot === 'string' ? member.image_slot : `team-${index + 1}` };
+}
+function normaliseTeamSection(section: Record<string, unknown>, index: number) {
+    return { title: typeof section.title === 'string' ? section.title : `Team ${index + 1}`, description: typeof section.description === 'string' ? section.description : '', members: Array.isArray(section.members) ? section.members.map(normaliseMember) : [] };
+}
+function uniqueSlot(prefix: string) { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
+function addLeadershipMessage() { form.leadership_messages.push({ title: '', body: '', name: '', designation: '', image_slot: uniqueSlot('leadership') }); }
+function removeLeadershipMessage(index: number) {
+    const [member] = form.leadership_messages.splice(index, 1);
     if (member?.image_slot) delete form.about_images[member.image_slot];
 }
+function addTeamSection() { form.team_sections.push({ title: '', description: '', members: [] }); }
+function removeTeamSection(index: number) { const [section] = form.team_sections.splice(index, 1); section?.members.forEach((member: { image_slot: string }) => delete form.about_images[member.image_slot]); }
+function addTeamMember(sectionIndex: number) { form.team_sections[sectionIndex].members.push({ name: '', designation: '', phone: '', email: '', image_slot: uniqueSlot('team') }); }
+function removeTeamMember(sectionIndex: number, memberIndex: number) { const [member] = form.team_sections[sectionIndex].members.splice(memberIndex, 1); if (member?.image_slot) delete form.about_images[member.image_slot]; }
 function save() {
     form.post(`/cms/pages/${props.page.id}/revisions/${props.revision.id}`, {
         forceFormData: true,
@@ -351,8 +374,6 @@ function submitForReview() {
                     <div
                         v-for="image in [
                             { slot: 'hero', label: 'Hero machine image', hint: 'Displayed in the blue hero panel.' },
-                            { slot: 'chairman', label: 'Chairman portrait', hint: 'Displayed beside the Chairman message.' },
-                            { slot: 'md', label: 'Managing Director portrait', hint: 'Displayed beside the MD message.' },
                         ]"
                         :key="image.slot"
                         class="space-y-3"
@@ -397,55 +418,13 @@ function submitForReview() {
                     </div>
                 </div>
             </section>
-            <section
-                v-if="page.template_key === 'about'"
-                class="space-y-5 rounded-lg border bg-card p-5"
-            >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 class="text-base font-semibold">Our team</h2>
-                        <p class="mt-1 text-sm text-muted-foreground">Add, edit, or remove team cards. Each image is saved with this draft.</p>
-                    </div>
-                    <Button type="button" variant="outline" @click="addTeamMember"><Plus class="size-4" /> Add team member</Button>
-                </div>
-                <div v-if="form.team_members.length" class="space-y-5">
-                    <div v-for="(member, index) in form.team_members" :key="member.image_slot" class="rounded-lg border p-4">
-                        <div class="mb-4 flex items-center justify-between">
-                            <h3 class="font-medium">Team member {{ index + 1 }}</h3>
-                            <Button type="button" size="icon" variant="ghost" @click="removeTeamMember(index)"><Trash2 class="size-4 text-destructive" /></Button>
-                        </div>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="space-y-2">
-                                <label :for="`team-${index}-name`" class="text-sm font-medium">Name</label>
-                                <input :id="`team-${index}-name`" v-model="member.name" class="w-full rounded-md border bg-background px-3 py-2" />
-                            </div>
-                            <div class="space-y-2">
-                                <label :for="`team-${index}-designation`" class="text-sm font-medium">Designation</label>
-                                <input :id="`team-${index}-designation`" v-model="member.designation" class="w-full rounded-md border bg-background px-3 py-2" />
-                            </div>
-                            <div class="space-y-2">
-                                <label :for="`team-${index}-phone`" class="text-sm font-medium">Phone number</label>
-                                <input :id="`team-${index}-phone`" v-model="member.phone" class="w-full rounded-md border bg-background px-3 py-2" />
-                            </div>
-                            <div class="space-y-2">
-                                <label :for="`team-${index}-email`" class="text-sm font-medium">Email address</label>
-                                <input :id="`team-${index}-email`" v-model="member.email" type="email" class="w-full rounded-md border bg-background px-3 py-2" />
-                            </div>
-                        </div>
-                        <div class="mt-4 grid gap-3 md:grid-cols-[12rem_1fr] md:items-center">
-                            <div class="aspect-square overflow-hidden rounded-lg border bg-muted">
-                                <img v-if="imagePreview('about', member.image_slot)" :src="imagePreview('about', member.image_slot)" :alt="member.name || 'Team member'" class="size-full object-cover" />
-                                <div v-else class="grid size-full place-items-center text-center text-xs text-muted-foreground">No image uploaded</div>
-                            </div>
-                            <div>
-                                <label :for="`team-image-${index}`" class="text-sm font-medium">Portrait image</label>
-                                <input :id="`team-image-${index}`" type="file" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full cursor-pointer rounded-md border border-input bg-background text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:border-0 file:bg-jack-blue file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-jack-blue/90" @change="selectImage('about', member.image_slot, $event)" />
-                                <InputError :message="form.errors[`about_images.${member.image_slot}`]" class="mt-2" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <p v-else class="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">No team members yet. Add one to show a team card on the About page.</p>
+            <section v-if="page.template_key === 'about'" class="space-y-5 rounded-lg border bg-card p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="text-base font-semibold">Leadership messages</h2><p class="mt-1 text-sm text-muted-foreground">Add any number of messages and portraits.</p></div><Button type="button" variant="outline" @click="addLeadershipMessage"><Plus class="size-4" /> Add message</Button></div>
+                <div v-for="(message, index) in form.leadership_messages" :key="message.image_slot" class="rounded-lg border p-4"><div class="flex justify-between"><h3 class="font-medium">Message {{ index + 1 }}</h3><Button type="button" size="icon" variant="ghost" @click="removeLeadershipMessage(index)"><Trash2 class="size-4 text-destructive" /></Button></div><div class="mt-3 grid gap-3 md:grid-cols-2"><input v-model="message.title" placeholder="Section title" class="rounded-md border bg-background px-3 py-2" /><input v-model="message.name" placeholder="Name" class="rounded-md border bg-background px-3 py-2" /><input v-model="message.designation" placeholder="Title / designation" class="rounded-md border bg-background px-3 py-2" /><textarea v-model="message.body" rows="4" placeholder="Message body" class="rounded-md border bg-background px-3 py-2" /></div><input type="file" accept="image/jpeg,image/png,image/webp" class="mt-3 block w-full text-sm" @change="selectImage('about', message.image_slot, $event)" /></div>
+            </section>
+            <section v-if="page.template_key === 'about'" class="space-y-5 rounded-lg border bg-card p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="text-base font-semibold">Our teams</h2><p class="mt-1 text-sm text-muted-foreground">Create departments, then add as many members as each needs.</p></div><Button type="button" variant="outline" @click="addTeamSection"><Plus class="size-4" /> Add team section</Button></div>
+                <div v-for="(section, sectionIndex) in form.team_sections" :key="sectionIndex" class="rounded-lg border p-4"><div class="flex justify-between"><h3 class="font-medium">Team section {{ sectionIndex + 1 }}</h3><Button type="button" size="icon" variant="ghost" @click="removeTeamSection(sectionIndex)"><Trash2 class="size-4 text-destructive" /></Button></div><div class="mt-3 grid gap-3 md:grid-cols-2"><input v-model="section.title" placeholder="Marketing team" class="rounded-md border bg-background px-3 py-2" /><input v-model="section.description" placeholder="Optional description" class="rounded-md border bg-background px-3 py-2" /></div><div class="mt-4 flex justify-between border-t pt-4"><h4 class="font-medium">Members</h4><Button type="button" size="sm" variant="outline" @click="addTeamMember(sectionIndex)"><Plus class="size-4" /> Add member</Button></div><div v-for="(member, memberIndex) in section.members" :key="member.image_slot" class="mt-3 rounded-md border p-3"><div class="flex justify-between"><span class="text-sm font-medium">Member {{ memberIndex + 1 }}</span><Button type="button" size="icon" variant="ghost" @click="removeTeamMember(sectionIndex, memberIndex)"><Trash2 class="size-4 text-destructive" /></Button></div><div class="mt-2 grid gap-3 md:grid-cols-2"><input v-model="member.name" placeholder="Name" class="rounded-md border bg-background px-3 py-2" /><input v-model="member.designation" placeholder="Title / designation" class="rounded-md border bg-background px-3 py-2" /><input v-model="member.phone" placeholder="Phone number" class="rounded-md border bg-background px-3 py-2" /><input v-model="member.email" type="email" placeholder="Email address" class="rounded-md border bg-background px-3 py-2" /></div><input type="file" accept="image/jpeg,image/png,image/webp" class="mt-3 block w-full text-sm" @change="selectImage('about', member.image_slot, $event)" /></div></div>
             </section>
             <section
                 v-if="page.template_key === 'home'"
